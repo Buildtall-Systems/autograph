@@ -43,6 +43,11 @@ during development.
 
 ## Release
 
+The add-on's AMO listing (unlisted channel) is managed at
+<https://addons.mozilla.org/en-US/developers/addon/bd20a5d1f1544cc2b922/versions>
+— signing status, submitted versions, and signed-file downloads live there
+(AMO slug `bd20a5d1f1544cc2b922`, addon id `autograph@buildtall.systems`).
+
 `make release` bumps the version (`BUMP=patch|minor|major`, default patch),
 builds and zips both targets, submits the Firefox build for AMO unlisted
 signing (`web-ext sign`; credentials come from `WEB_EXT_API_KEY` /
