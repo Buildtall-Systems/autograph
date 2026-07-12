@@ -1,0 +1,81 @@
+@import 'tailwindcss';
+
+@font-face {
+  font-family: 'AvenirNextLTPro';
+  src: url('../fonts/AvenirNextLTPro-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'AvenirNextLTPro';
+  src: url('../fonts/AvenirNextLTPro-Bold.otf') format('opentype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'AvenirNextLTPro';
+  src: url('../fonts/AvenirNextLTPro-It.otf') format('opentype');
+  font-weight: normal;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'AvenirNextLTPro';
+  src: url('../fonts/AvenirNextLTPro-Demi.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+}
+
+@theme {
+  --font-avenir: 'AvenirNextLTPro', sans-serif;
+
+  --color-iceberg-bg: #161821;
+  --color-iceberg-bg-subtle: #1e2132;
+  --color-iceberg-bg-muted: #0f1117;
+  --color-iceberg-bg-highlight: #272c42;
+  --color-iceberg-bg-elevated: #3d425b;
+  --color-iceberg-fg: #c6c8d1;
+  --color-iceberg-fg-subtle: #6b7089;
+  --color-iceberg-fg-muted: #444b71;
+  --color-iceberg-blue: #84a0c6;
+  --color-iceberg-cyan: #89b8c2;
+  --color-iceberg-green: #b4be82;
+  --color-iceberg-purple: #a093c7;
+  --color-iceberg-red: #e27878;
+  --color-iceberg-orange: #e2a478;
+  --color-iceberg-yellow: #e4aa80;
+
+  --color-bg: var(--color-iceberg-bg);
+  --color-bg-subtle: var(--color-iceberg-bg-subtle);
+  --color-bg-muted: var(--color-iceberg-bg-muted);
+  --color-bg-highlight: var(--color-iceberg-bg-highlight);
+  --color-bg-elevated: var(--color-iceberg-bg-elevated);
+  --color-fg: var(--color-iceberg-fg);
+  --color-fg-subtle: var(--color-iceberg-fg-subtle);
+  --color-fg-muted: var(--color-iceberg-fg-muted);
+  --color-primary: var(--color-iceberg-blue);
+  --color-secondary: var(--color-iceberg-cyan);
+  --color-accent: var(--color-iceberg-green);
+  --color-danger: var(--color-iceberg-red);
+  --color-warning: var(--color-iceberg-orange);
+}
+
+@layer base {
+  [data-theme='iceberg-light'] {
+    --color-bg: #e8e9ec;
+    --color-bg-subtle: #d2d4de;
+    --color-bg-muted: #c6c8d1;
+    --color-bg-highlight: #dcdfe7;
+    --color-bg-elevated: #cad0de;
+    --color-fg: #33374c;
+    --color-fg-subtle: #6b7089;
+    --color-fg-muted: #8389a3;
+    --color-primary: #2d539e;
+    --color-secondary: #3f83a6;
+    --color-accent: #668e3d;
+    --color-danger: #cc3768;
+    --color-warning: #c57339;
+  }
+}

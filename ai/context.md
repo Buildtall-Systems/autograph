@@ -1,19 +1,22 @@
 # autograph — context registry
 
 Registry of external context sources for this project. Consult before using
-any library, API, or tool for the first time in a session.
-
-## Pending (to be gathered during research phase)
-
-- **nos2x-fox** — https://github.com/diegogurpegui/nos2x-fox — reference
-  implementation for NIP-07 signer functionality. Clone via `/git-context`.
-  Functional reference only; UI look and feel is NOT adopted (autograph uses
-  the buildtall iceberg dark/light themes).
-- **NIP-07** — window.nostr capability spec (nostr-nips skill / ai/context/nips).
-- **WebExtension APIs** — cross-browser (Firefox + Chromium) architecture,
-  webextension-polyfill, manifest version posture.
-- **nostr-tools** — JS signing stack candidate.
+any library, API, or tool for the first time in a session. Context7 IDs and
+clones live in the meta-repo registry (`../../ai/context.md`); this file maps
+autograph's dependencies to those entries.
 
 ## Registered
 
-(none yet)
+| Library Name Searched | Context7 ID        | Local Reference Path (meta-repo)   |
+|-----------------------|--------------------|------------------------------------|
+| nos2x-fox             |                    | ai/context/nos2x-fox/              |
+| nostr-nips            | /websites/e2encrypted | ai/context/nips/                |
+| nostr-tools           | /nbd-wtf/nostr-tools | ai/context/nostr-tools/          |
+| wxt                   | /wxt-dev/wxt       |                                    |
+| webextension-polyfill | /mozilla/webextension-polyfill |                        |
+
+Notes:
+- **nos2x-fox** is the functional reference only; UI look and feel is NOT
+  adopted (autograph uses the buildtall iceberg dark/light themes).
+- Iceberg theme canon: `projects/buildtall-users/cmd/buildtall.systems/css/main.css`
+  (copied verbatim into `assets/css/main.css` here).

@@ -4,3 +4,11 @@ scratch/
 ai/context/
 *.xpi
 *.zip
+*.log
+.output/
+.wxt/
+stats.html
+stats-*.json
+web-ext.config.ts
+.idea
+.vscode/

@@ -9,7 +9,31 @@ the personal ontology — adding content to lists of lists and viewing it.
 
 ## Status
 
-Pre-implementation. Research and planning in progress.
+Phase 1 (toolchain and scaffold) in progress on `feature/nip07-signer`.
+
+## Development
+
+Tooling runs inside the Nix devShell; the Makefile wraps everything:
+
+```
+make help          list targets
+make dev-firefox   dev mode with live reload (Firefox)
+make dev           dev mode (Chromium)
+make lint          eslint + prettier + typecheck
+make test          vitest
+make build         production build of both targets
+```
+
+Built extensions land in `.output/`. To load temporarily:
+
+- **Firefox**: `about:debugging` → This Firefox → Load Temporary Add-on →
+  `.output/firefox-mv2/manifest.json`
+- **Chromium**: `chrome://extensions` → enable Developer mode → Load
+  unpacked → `.output/chrome-mv3/`
+
+The stack is WXT (one TypeScript codebase, Firefox MV2 + Chromium MV3
+builds), nostr-tools for all cryptography, and Tailwind CSS v4 with the
+buildtall iceberg dark/light theme tokens and vendored Avenir Next.
 
 ## Roadmap
 

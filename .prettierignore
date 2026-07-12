@@ -1,0 +1,9 @@
+.output/
+.wxt/
+node_modules/
+scratch/
+public/
+ai/
+package-lock.json
+flake.lock
+*.md
