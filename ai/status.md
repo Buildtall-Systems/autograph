@@ -2,6 +2,30 @@
 
 ## 2026-07-12
 
+- Phase 5 (packaging + self-hosted distribution) implemented, gates green.
+  Operator verified Phase 4 on both browsers (options live-update + Chromium
+  parity) → committed `073120d`. Distribution decision: signed `.xpi` +
+  `updates.json` served from `https://buildtall.systems/autograph/` (new
+  `locations."/autograph/"` carve-out on the existing vhost, alias to
+  /var/www/autograph — nginx change pending in monorepo deploy config).
+  Single source for distribution literals: `lib/dist.ts` (ADDON_ID
+  autograph@buildtall.systems, strict_min_version 128.0, base URL,
+  buildUpdatesManifest) — imported by wxt.config.ts, the generator, and
+  tests. wxt.config.ts manifest is now a per-browser function: gecko
+  id/strict_min_version/update_url in the firefox-mv2 build only (verified
+  in built manifests: present in firefox, zero gecko refs in chrome-mv3).
+  `scripts/gen-updates.ts` emits dist/updates.json with versioned
+  update_link (autograph-<version>.xpi — versioned names, not a mutable
+  stable name, so update round-trips can't be defeated by caches); runs on
+  bare node 24 type-stripping (tsconfig gains allowImportingTsExtensions).
+  Makefile: `sign` (web-ext sign --channel unlisted, WEB_EXT_API_KEY/SECRET
+  from operator env, never in-repo), `updates`, `release` (npm version
+  $(BUMP) --no-git-tag-version + build + zip + sign + updates). web-ext
+  ^10.5.0 devDependency. README: installation (Firefox signed/self-updating,
+  Chromium unpacked), release choreography. Remaining (operator-gated): AMO
+  credentials for first signing, nginx carve-out + /var/www/autograph on
+  prod, then the four manual distribution verifications from the plan.
+
 - Customer-zero gate feedback: the options page went stale when grants were
   added (background writes on prompt approval) or revoked until manually
   refreshed. Fixed event-driven, no polling: the page now subscribes to

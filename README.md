@@ -9,7 +9,47 @@ the personal ontology — adding content to lists of lists and viewing it.
 
 ## Status
 
-Phase 1 (toolchain and scaffold) in progress on `feature/nip07-signer`.
+NIP-07 signer implemented on `feature/nip07-signer`: `window.nostr` provider,
+multi-profile vault with keys encrypted at rest, per-origin permission grants
+with expiry, prompt/popup/options/unlock UI.
+
+## Installation
+
+### Firefox (signed, self-updating)
+
+Download the signed `.xpi` from
+`https://buildtall.systems/autograph/` and open it with Firefox (File →
+Open, or drag it onto a window); confirm the install prompt. The extension
+carries an `update_url` pointing at
+`https://buildtall.systems/autograph/updates.json`, so Firefox checks for
+and applies new versions automatically (or on demand via
+`about:addons` → gear menu → Check for Updates).
+
+### Chromium (unpacked, developer mode)
+
+Chromium installs run from a local build:
+
+1. `make build`
+2. `chrome://extensions` → enable Developer mode → Load unpacked →
+   select `.output/chrome-mv3/`
+
+Unpacked installs do not auto-update; rebuild and reload to upgrade.
+
+### Building from source
+
+`make build` produces both targets under `.output/` (requires Nix; the
+devShell provides Node). See Development below for temporary loading
+during development.
+
+## Release
+
+`make release` bumps the version (`BUMP=patch|minor|major`, default patch),
+builds and zips both targets, submits the Firefox build for AMO unlisted
+signing (`web-ext sign`; credentials come from `WEB_EXT_API_KEY` /
+`WEB_EXT_API_SECRET` in the operator's environment, never the repo), and
+generates `dist/updates.json`. The signed `.xpi` and `updates.json` are then
+published to `https://buildtall.systems/autograph/` — the `.xpi` under its
+versioned name `autograph-<version>.xpi` as linked from `updates.json`.
 
 ## Development
 

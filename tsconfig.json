@@ -1,7 +1,8 @@
 {
   "extends": "./.wxt/tsconfig.json",
   "compilerOptions": {
-    "noUncheckedIndexedAccess": true
+    "noUncheckedIndexedAccess": true,
+    "allowImportingTsExtensions": true
   },
   "exclude": ["scratch", ".output", "node_modules"]
 }
