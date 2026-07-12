@@ -66,7 +66,10 @@ Nix store by the `buildtall.systems` nginx vhost at
    versioned name that `updates.json` links — and copy `dist/updates.json`
    over `deploy/dist/autograph/updates.json`. Keep prior `.xpi` versions
    in place; their `update_link`s remain live.
-3. Commit on a monorepo feature branch, pass `make eval`, merge to
+3. Update the front-page card's install link to the new `.xpi` filename
+   in `cmd/buildtall.systems/views/home.templ` and regenerate templates
+   (`make templ` in `cmd/buildtall.systems`).
+4. Commit on a monorepo feature branch, pass `make eval`, merge to
    develop, and run `make deploy-prod`.
 
 Installed Firefox profiles pick up the new version on their next update
