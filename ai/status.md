@@ -2,6 +2,59 @@
 
 ## 2026-07-12
 
+- Customer-zero gate feedback: the options page went stale when grants were
+  added (background writes on prompt approval) or revoked until manually
+  refreshed. Fixed event-driven, no polling: the page now subscribes to
+  browser.storage.onChanged and re-renders when any of its render sources
+  change — `profiles`, `activePubkey`, `vaultMeta` (local) or
+  `vaultSession` (session); the storage-key constants are now exported from
+  lib/profiles.ts and lib/vault.ts (vault keys renamed to
+  VAULT_META_STORAGE_KEY / VAULT_SESSION_STORAGE_KEY on export). Renders
+  are serialized through a promise chain so a change event arriving
+  mid-render cannot interleave two rebuilds. The manual
+  `.then(() => render())` refresh chains after each mutation were removed —
+  onChanged fires in the writing context too, so the watcher is the single
+  refresh path; error handling at each call site kept (and tightened:
+  delete/revoke/switch now surface failures instead of assuming success).
+  Bonus of the same mechanism: lock/unlock/vault-creation from another
+  page or the background now update an open options page live. Gates green.
+
+- Phase 4 (UI: prompt, popup, options, unlock) implemented, gates green,
+  awaiting the customer-zero manual gate. New internal UI message protocol
+  (`lib/ui-messages.ts`: answerPrompt / unlock / createVault / lock, guarded
+  by isUiMessage) handled in the background beside the three-hop listener —
+  prompt answers must reach the background because the approval resolvers
+  live in its memory; the listener honors UI messages only from
+  extension-origin senders. Prompt-queue storage helpers extracted to
+  `lib/prompts.ts` (pages read the queue without importing the background
+  entrypoint); QueuedPrompt gains an optional signEvent detail (kind +
+  200-char content preview). Locked-vault path now opens `/unlock.html` in
+  an on-demand window mirroring the prompt-window machinery (shared outcome
+  for concurrent waiters, close-as-reject, storage.local `unlockRequest`
+  record); createVault serves the first-run flow. Fixed a latent
+  answerPrompt defect: an invalid custom duration used to throw after the
+  queue entry was removed but before the requester settled, stranding the
+  page request forever — grant construction now happens inside the queue
+  lock before dequeuing. Pages are plain-TS DOM over `components/`
+  (dom.ts el helper, theme.ts data-theme in storage.local with
+  onChanged live-apply, format.ts view-model: truncateMiddle,
+  capability/condition labels, parseDurationInput, grantExpiryLabel).
+  Prompt page renders queued cards with once/5m/1h/8h/custom/forever/deny;
+  popup shows vault state + lock-now, active profile with copyable npub,
+  profile switcher, options link; options page (open_in_tab) has vault
+  create/lock/unlock, auto-lock minutes, change-passphrase (rewraps every
+  profile key via changePassphrase + replaceEncryptedKey), profile CRUD
+  (generate, import hex/nsec, rename, export nsec behind reveal/hide,
+  delete with confirm), wss://-validated relay editor with read/write
+  toggles, permission table with revoke, theme toggle. autographDevSeed
+  and the placeholder prompt page are gone. clipboardWrite permission
+  added for the copyable npub. 40 new tests (149 total): ui-message
+  guards, prompt/unlock storage, format view-models, handleUiMessage
+  integration (grant persisted, invalid-duration regression, unlock
+  completes a waiting sign, wrong passphrase leaves it waiting, lock),
+  and the round-trip suite now proves sign-after-unlock-on-demand
+  end-to-end plus dismissed-unlock-window rejection.
+
 - Phase 3 (provider, relay, background dispatch) implemented: the NIP-07
   pipeline works end-to-end mechanically. `entrypoints/nostr-provider/`
   (defineUnlistedScript: window.nostr with getPublicKey/signEvent/getRelays/

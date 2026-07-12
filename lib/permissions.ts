@@ -22,6 +22,13 @@ export const GRANT_CONDITIONS = [
 
 export type GrantCondition = (typeof GRANT_CONDITIONS)[number];
 
+export function isGrantCondition(value: unknown): value is GrantCondition {
+  return (
+    typeof value === 'string' &&
+    (GRANT_CONDITIONS as readonly string[]).includes(value)
+  );
+}
+
 const FIXED_CONDITION_SECONDS: Partial<Record<GrantCondition, number>> = {
   expirable_5m: 5 * 60,
   expirable_1h: 60 * 60,

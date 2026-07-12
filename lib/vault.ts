@@ -6,8 +6,8 @@ export const IV_BYTES = 12;
 export const DEFAULT_AUTOLOCK_SECONDS = 15 * 60;
 
 const VERIFIER_PLAINTEXT = 'autograph-vault-verifier-v1';
-const META_STORAGE_KEY = 'vaultMeta';
-const SESSION_STORAGE_KEY = 'vaultSession';
+export const VAULT_META_STORAGE_KEY = 'vaultMeta';
+export const VAULT_SESSION_STORAGE_KEY = 'vaultSession';
 
 export interface EncryptedBlob {
   ivB64: string;
@@ -139,8 +139,8 @@ async function decryptWithKey(
 }
 
 async function readMeta(): Promise<VaultMeta | null> {
-  const stored = await browser.storage.local.get(META_STORAGE_KEY);
-  return (stored[META_STORAGE_KEY] as VaultMeta | undefined) ?? null;
+  const stored = await browser.storage.local.get(VAULT_META_STORAGE_KEY);
+  return (stored[VAULT_META_STORAGE_KEY] as VaultMeta | undefined) ?? null;
 }
 
 async function requireMeta(): Promise<VaultMeta> {
@@ -152,14 +152,14 @@ async function requireMeta(): Promise<VaultMeta> {
 }
 
 async function readSession(): Promise<VaultSession | null> {
-  const stored = await browser.storage.session.get(SESSION_STORAGE_KEY);
+  const stored = await browser.storage.session.get(VAULT_SESSION_STORAGE_KEY);
   const session =
-    (stored[SESSION_STORAGE_KEY] as VaultSession | undefined) ?? null;
+    (stored[VAULT_SESSION_STORAGE_KEY] as VaultSession | undefined) ?? null;
   if (session === null) {
     return null;
   }
   if (Date.now() >= session.deadlineMs) {
-    await browser.storage.session.remove(SESSION_STORAGE_KEY);
+    await browser.storage.session.remove(VAULT_SESSION_STORAGE_KEY);
     return null;
   }
   return session;
@@ -173,7 +173,7 @@ async function startSession(
     keyB64: bytesToBase64(keyBytes),
     deadlineMs: Date.now() + autolockSeconds * 1000,
   };
-  await browser.storage.session.set({ [SESSION_STORAGE_KEY]: session });
+  await browser.storage.session.set({ [VAULT_SESSION_STORAGE_KEY]: session });
 }
 
 async function sessionKey(): Promise<CryptoKey> {
@@ -219,7 +219,7 @@ export async function initializeVault(
       verifier,
       autolockSeconds,
     };
-    await browser.storage.local.set({ [META_STORAGE_KEY]: meta });
+    await browser.storage.local.set({ [VAULT_META_STORAGE_KEY]: meta });
     await startSession(keyBytes, autolockSeconds);
   } finally {
     zeroBytes(keyBytes);
@@ -264,7 +264,7 @@ export async function unlockVault(passphrase: string): Promise<void> {
 }
 
 export async function lockVault(): Promise<void> {
-  await browser.storage.session.remove(SESSION_STORAGE_KEY);
+  await browser.storage.session.remove(VAULT_SESSION_STORAGE_KEY);
 }
 
 export async function encryptSecret(
@@ -296,7 +296,7 @@ export async function getAutolockSeconds(): Promise<number> {
 export async function setAutolockSeconds(seconds: number): Promise<void> {
   const meta = await requireMeta();
   meta.autolockSeconds = validateAutolockSeconds(seconds);
-  await browser.storage.local.set({ [META_STORAGE_KEY]: meta });
+  await browser.storage.local.set({ [VAULT_META_STORAGE_KEY]: meta });
 }
 
 export async function changePassphrase(
@@ -336,7 +336,7 @@ export async function changePassphrase(
       verifier,
       autolockSeconds: meta.autolockSeconds,
     };
-    await browser.storage.local.set({ [META_STORAGE_KEY]: nextMeta });
+    await browser.storage.local.set({ [VAULT_META_STORAGE_KEY]: nextMeta });
     await startSession(nextKeyBytes, meta.autolockSeconds);
     return rewrapped;
   } finally {

@@ -2,8 +2,8 @@ import { pruneExpired, type Grant, type PermissionMap } from './permissions';
 import type { RelayMap } from './protocol';
 import type { EncryptedBlob } from './vault';
 
-const PROFILES_STORAGE_KEY = 'profiles';
-const ACTIVE_PUBKEY_STORAGE_KEY = 'activePubkey';
+export const PROFILES_STORAGE_KEY = 'profiles';
+export const ACTIVE_PUBKEY_STORAGE_KEY = 'activePubkey';
 
 export interface Profile {
   name: string;

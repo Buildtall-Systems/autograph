@@ -4,14 +4,18 @@ import { verifyEvent } from 'nostr-tools/pure';
 import { generateProfileKey, withSecretKey } from '@/lib/nostr';
 import { makeGrant } from '@/lib/permissions';
 import { addProfile, getGrant, setGrant, setRelays } from '@/lib/profiles';
+import {
+  listQueuedPrompts,
+  readUnlockRequest,
+  type QueuedPrompt,
+} from '@/lib/prompts';
 import type { BackgroundRequest, SignedEvent } from '@/lib/protocol';
 import { encryptSecret, initializeVault, lockVault } from '@/lib/vault';
 import background, {
   answerPrompt,
   handleBackgroundRequest,
-  listQueuedPrompts,
+  handleUnlockWindowClosed,
   resetPromptState,
-  type QueuedPrompt,
 } from './index';
 
 const HOST = 'drss.io';
@@ -140,11 +144,21 @@ describe('handleBackgroundRequest', () => {
     expect(result.error).toBe('malformed signEvent params');
   });
 
-  it('refuses to sign while the vault is locked', async () => {
+  it('opens an unlock window when locked and rejects when it closes', async () => {
     await seedGrantedProfile();
     await lockVault();
-    const result = await handleBackgroundRequest(signEventRequest());
+    const pending = handleBackgroundRequest(signEventRequest());
+    await expect
+      .poll(async () => (await readUnlockRequest()) !== null)
+      .toBe(true);
+    const unlockRequest = await readUnlockRequest();
+    if (unlockRequest === null || unlockRequest.windowId === null) {
+      throw new Error('unlock request has no window');
+    }
+    await handleUnlockWindowClosed(unlockRequest.windowId);
+    const result = await pending;
     expect(result.error).toBe('vault is locked');
+    expect(await readUnlockRequest()).toBeNull();
   });
 
   it('round-trips nip44 encryption through the dispatch table', async () => {
@@ -191,6 +205,18 @@ describe('handleBackgroundRequest', () => {
     await answerPrompt(prompt.id, 'single');
     const result = await pending;
     expect(result.error).toBeUndefined();
+  });
+
+  it('queues signEvent prompts with kind and content preview', async () => {
+    await seedProfile();
+    const pending = handleBackgroundRequest(signEventRequest());
+    const prompt = await onlyQueuedPrompt();
+    expect(prompt.detail).toEqual({
+      kind: 1,
+      contentPreview: 'hello nostr',
+    });
+    await answerPrompt(prompt.id, 'single');
+    expect((await pending).error).toBeUndefined();
   });
 
   it('single-use approval does not persist a grant', async () => {

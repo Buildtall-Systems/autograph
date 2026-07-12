@@ -5,9 +5,16 @@ import { generateProfileKey, withSecretKey } from '@/lib/nostr';
 import { makeGrant } from '@/lib/permissions';
 import { addProfile, setGrant } from '@/lib/profiles';
 import { encryptSecret, initializeVault, lockVault } from '@/lib/vault';
+import { readUnlockRequest } from '@/lib/prompts';
 import { isBackgroundRequest } from '@/lib/protocol';
+import { UI_TAG } from '@/lib/ui-messages';
 import { relayToBackground } from '@/entrypoints/autograph.content';
-import { handleBackgroundRequest, resetPromptState } from './index';
+import {
+  handleBackgroundRequest,
+  handleUiMessage,
+  handleUnlockWindowClosed,
+  resetPromptState,
+} from './index';
 import {
   createProvider,
   type NostrProvider,
@@ -96,17 +103,48 @@ describe('NIP-07 round trip', () => {
     );
   });
 
-  it('surfaces a locked vault as a provider rejection', async () => {
+  it('signs end-to-end after unlocking a locked vault on demand', async () => {
+    const pubkey = await seedGrantedProfile();
+    await lockVault();
+    const nostr = assemblePipeline();
+    const pending = nostr.signEvent({
+      kind: 1,
+      created_at: nowSeconds(),
+      tags: [],
+      content: 'unlocked on demand',
+    });
+    await expect
+      .poll(async () => (await readUnlockRequest()) !== null)
+      .toBe(true);
+    const unlocked = await handleUiMessage({
+      ui: UI_TAG,
+      action: 'unlock',
+      passphrase: PASSPHRASE,
+    });
+    expect(unlocked.error).toBeUndefined();
+    const signed = await pending;
+    expect(signed.pubkey).toBe(pubkey);
+    expect(verifyEvent(signed)).toBe(true);
+  });
+
+  it('surfaces a dismissed unlock window as a provider rejection', async () => {
     await seedGrantedProfile();
     await lockVault();
     const nostr = assemblePipeline();
-    await expect(
-      nostr.signEvent({
-        kind: 1,
-        created_at: nowSeconds(),
-        tags: [],
-        content: 'should fail',
-      }),
-    ).rejects.toThrow('autograph: vault is locked');
+    const pending = nostr.signEvent({
+      kind: 1,
+      created_at: nowSeconds(),
+      tags: [],
+      content: 'should fail',
+    });
+    await expect
+      .poll(async () => (await readUnlockRequest()) !== null)
+      .toBe(true);
+    const unlockRequest = await readUnlockRequest();
+    if (unlockRequest === null || unlockRequest.windowId === null) {
+      throw new Error('unlock request has no window');
+    }
+    await handleUnlockWindowClosed(unlockRequest.windowId);
+    await expect(pending).rejects.toThrow('autograph: vault is locked');
   });
 });

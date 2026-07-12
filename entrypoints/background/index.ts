@@ -1,5 +1,5 @@
 import {
-  generateProfileKey,
+  clearConversationKeyCache,
   nip04Decrypt,
   nip04Encrypt,
   nip44Decrypt,
@@ -10,16 +10,19 @@ import {
 import {
   decideCapability,
   makeGrant,
+  type Grant,
   type GrantCondition,
 } from '@/lib/permissions';
+import { getActiveProfile, getGrant, setGrant } from '@/lib/profiles';
 import {
-  addProfile,
-  getActiveProfile,
-  getGrant,
-  setActivePubkey,
-  setGrant,
-  type Profile,
-} from '@/lib/profiles';
+  clearUnlockRequest,
+  contentPreview,
+  readPromptQueue,
+  writePromptQueue,
+  writeUnlockRequest,
+  type QueuedPrompt,
+  type SignEventDetail,
+} from '@/lib/prompts';
 import {
   isBackgroundRequest,
   isCipherParams,
@@ -29,27 +32,23 @@ import {
   type BackgroundResponse,
   type Capability,
 } from '@/lib/protocol';
+import { isUiMessage, type UiMessage } from '@/lib/ui-messages';
+import type { PublicPath } from 'wxt/browser';
 import {
   VaultLockedError,
   decryptSecret,
-  encryptSecret,
   initializeVault,
   isUnlocked,
+  lockVault,
   unlockVault,
-  vaultExists,
 } from '@/lib/vault';
+import type { Profile } from '@/lib/profiles';
 
 export const PROMPT_WINDOW_WIDTH = 400;
 export const PROMPT_WINDOW_HEIGHT = 520;
-const PROMPT_QUEUE_STORAGE_KEY = 'promptQueue';
+export const UNLOCK_WINDOW_WIDTH = 400;
+export const UNLOCK_WINDOW_HEIGHT = 360;
 const MS_PER_SECOND = 1000;
-
-export interface QueuedPrompt {
-  id: string;
-  host: string;
-  capability: Capability;
-  windowId: number | null;
-}
 
 function nowSeconds(): number {
   return Math.floor(Date.now() / MS_PER_SECOND);
@@ -168,25 +167,15 @@ function withQueueLock<T>(operation: () => Promise<T>): Promise<T> {
   return result;
 }
 
-async function readPromptQueue(): Promise<QueuedPrompt[]> {
-  const stored = await browser.storage.local.get(PROMPT_QUEUE_STORAGE_KEY);
-  return (stored[PROMPT_QUEUE_STORAGE_KEY] as QueuedPrompt[] | undefined) ?? [];
-}
-
-async function writePromptQueue(queue: QueuedPrompt[]): Promise<void> {
-  await browser.storage.local.set({ [PROMPT_QUEUE_STORAGE_KEY]: queue });
-}
-
-export async function listQueuedPrompts(): Promise<QueuedPrompt[]> {
-  return readPromptQueue();
-}
-
 export async function resetPromptState(): Promise<void> {
   promptWindow = null;
   for (const [id] of pendingApprovals) {
     settleApproval(id, false);
   }
   await withQueueLock(() => writePromptQueue([]));
+  unlockWindow = null;
+  settleUnlock(false);
+  await clearUnlockRequest();
 }
 
 function settleApproval(id: string, allowed: boolean): void {
@@ -199,24 +188,33 @@ function settleApproval(id: string, allowed: boolean): void {
   pending.settle(allowed);
 }
 
-async function createPromptWindow(): Promise<number | null> {
+async function createExtensionWindow(
+  path: PublicPath,
+  width: number,
+  height: number,
+): Promise<number | null> {
   const created = await browser.windows.create({
-    url: browser.runtime.getURL('/prompt.html'),
+    url: browser.runtime.getURL(path),
     type: 'popup',
-    width: PROMPT_WINDOW_WIDTH,
-    height: PROMPT_WINDOW_HEIGHT,
+    width,
+    height,
   });
   return created?.id ?? null;
 }
 
 function ensurePromptWindow(): Promise<number | null> {
-  promptWindow ??= createPromptWindow();
+  promptWindow ??= createExtensionWindow(
+    '/prompt.html',
+    PROMPT_WINDOW_WIDTH,
+    PROMPT_WINDOW_HEIGHT,
+  );
   return promptWindow;
 }
 
 export async function promptForCapability(
   host: string,
   capability: Capability,
+  detail?: SignEventDetail,
 ): Promise<boolean> {
   const dedupKey = `${host}|${capability}`;
   const existing = approvalsByDedupKey.get(dedupKey);
@@ -233,7 +231,11 @@ export async function promptForCapability(
   const windowId = await ensurePromptWindow();
   await withQueueLock(async () => {
     const queue = await readPromptQueue();
-    queue.push({ id, host, capability, windowId });
+    const entry: QueuedPrompt = { id, host, capability, windowId };
+    if (detail !== undefined) {
+      entry.detail = detail;
+    }
+    queue.push(entry);
     await writePromptQueue(queue);
   });
 
@@ -245,26 +247,29 @@ export async function answerPrompt(
   condition: GrantCondition,
   durationSeconds?: number,
 ): Promise<void> {
-  const queued = await withQueueLock(async () => {
+  const answered = await withQueueLock(async () => {
     const queue = await readPromptQueue();
     const found = queue.find((entry) => entry.id === id);
-    if (found !== undefined) {
-      await writePromptQueue(queue.filter((entry) => entry.id !== id));
+    if (found === undefined) {
+      return undefined;
     }
-    return found;
+    // Build the grant before dequeuing so an invalid custom duration leaves
+    // the prompt answerable instead of stranding the requester unsettled.
+    const grant: Grant | null =
+      condition === 'single'
+        ? null
+        : makeGrant(found.capability, condition, nowSeconds(), durationSeconds);
+    await writePromptQueue(queue.filter((entry) => entry.id !== id));
+    return { queued: found, grant };
   });
-  if (queued === undefined) {
+  if (answered === undefined) {
     console.warn(`autograph: answer for unknown prompt ${id}`);
     return;
   }
-  if (condition !== 'single') {
+  if (answered.grant !== null) {
     const active = await getActiveProfile();
     if (active !== null) {
-      await setGrant(
-        active.pubkey,
-        queued.host,
-        makeGrant(queued.capability, condition, nowSeconds(), durationSeconds),
-      );
+      await setGrant(active.pubkey, answered.queued.host, answered.grant);
     }
   }
   settleApproval(id, condition !== 'no');
@@ -311,6 +316,75 @@ export async function handlePromptWindowClosed(
   }
 }
 
+// Unlock-on-demand: a locked vault opens the unlock page in its own window
+// and every waiting request shares one outcome, mirroring the prompt window.
+interface PendingUnlock {
+  promise: Promise<boolean>;
+  settle: (unlocked: boolean) => void;
+}
+
+let pendingUnlock: PendingUnlock | null = null;
+let unlockWindow: Promise<number | null> | null = null;
+
+function settleUnlock(unlocked: boolean): void {
+  if (pendingUnlock === null) {
+    return;
+  }
+  const pending = pendingUnlock;
+  pendingUnlock = null;
+  pending.settle(unlocked);
+}
+
+async function requestUnlock(): Promise<boolean> {
+  if (pendingUnlock === null) {
+    let settle: (unlocked: boolean) => void = () => undefined;
+    const promise = new Promise<boolean>((resolve) => {
+      settle = resolve;
+    });
+    pendingUnlock = { promise, settle };
+    unlockWindow = createExtensionWindow(
+      '/unlock.html',
+      UNLOCK_WINDOW_WIDTH,
+      UNLOCK_WINDOW_HEIGHT,
+    );
+    const windowId = await unlockWindow;
+    await writeUnlockRequest({ windowId });
+  }
+  return pendingUnlock.promise;
+}
+
+async function finishUnlock(): Promise<void> {
+  settleUnlock(true);
+  await clearUnlockRequest();
+  if (unlockWindow === null) {
+    return;
+  }
+  const windowId = await unlockWindow;
+  unlockWindow = null;
+  if (windowId !== null) {
+    try {
+      await browser.windows.remove(windowId);
+    } catch (error) {
+      console.warn('autograph: unlock window already gone', error);
+    }
+  }
+}
+
+export async function handleUnlockWindowClosed(
+  closedWindowId: number,
+): Promise<void> {
+  if (unlockWindow === null) {
+    return;
+  }
+  const windowId = await unlockWindow;
+  if (windowId !== closedWindowId) {
+    return;
+  }
+  unlockWindow = null;
+  settleUnlock(false);
+  await clearUnlockRequest();
+}
+
 async function executeRequest(request: BackgroundRequest): Promise<unknown> {
   const active = await getActiveProfile();
   if (active === null) {
@@ -323,7 +397,11 @@ async function executeRequest(request: BackgroundRequest): Promise<unknown> {
     throw new Error(`${request.host} is denied ${request.type}`);
   }
   if (decision === 'ask') {
-    const allowed = await promptForCapability(request.host, request.type);
+    const allowed = await promptForCapability(
+      request.host,
+      request.type,
+      signEventDetail(request),
+    );
     if (!allowed) {
       throw new Error(`insufficient permissions for ${request.type}`);
     }
@@ -339,12 +417,27 @@ async function executeRequest(request: BackgroundRequest): Promise<unknown> {
     return handler.execute(context);
   }
   if (!(await isUnlocked())) {
-    throw new VaultLockedError();
+    const unlocked = await requestUnlock();
+    if (!unlocked) {
+      throw new VaultLockedError();
+    }
   }
   const secretKey = await decryptSecret(active.profile.encryptedKey);
   return withSecretKey(secretKey, (sk) =>
     handler.execute({ ...context, secretKey: sk }),
   );
+}
+
+function signEventDetail(
+  request: BackgroundRequest,
+): SignEventDetail | undefined {
+  if (request.type !== 'signEvent' || !isSignEventParams(request.params)) {
+    return undefined;
+  }
+  return {
+    kind: request.params.event.kind,
+    contentPreview: contentPreview(request.params.event.content),
+  };
 }
 
 export async function handleBackgroundRequest(
@@ -357,28 +450,35 @@ export async function handleBackgroundRequest(
   }
 }
 
-// Phase-3 scaffolding, removed in Phase 4 when real profile/grant UI exists:
-// seeds a vault, a generated profile, and a forever grant at the highest
-// capability level so `window.nostr` can be exercised from a page. Invoke
-// from the background console: `await autographDevSeed('passphrase', 'host')`.
-async function devSeed(passphrase: string, host: string): Promise<string> {
-  if (await vaultExists()) {
-    await unlockVault(passphrase);
-  } else {
-    await initializeVault(passphrase);
+export async function handleUiMessage(
+  message: UiMessage,
+): Promise<BackgroundResponse> {
+  try {
+    switch (message.action) {
+      case 'answerPrompt':
+        await answerPrompt(
+          message.id,
+          message.condition,
+          message.durationSeconds,
+        );
+        break;
+      case 'unlock':
+        await unlockVault(message.passphrase);
+        await finishUnlock();
+        break;
+      case 'createVault':
+        await initializeVault(message.passphrase);
+        await finishUnlock();
+        break;
+      case 'lock':
+        await lockVault();
+        clearConversationKeyCache();
+        break;
+    }
+    return { response: true };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : String(error) };
   }
-  const { secretKey, pubkey } = generateProfileKey();
-  const encryptedKey = await withSecretKey(secretKey, (sk) =>
-    encryptSecret(sk),
-  );
-  await addProfile(pubkey, 'dev-seed', encryptedKey);
-  await setActivePubkey(pubkey);
-  await setGrant(
-    pubkey,
-    host,
-    makeGrant('nip44.encrypt', 'forever', nowSeconds()),
-  );
-  return pubkey;
 }
 
 export default defineBackground(() => {
@@ -390,12 +490,28 @@ export default defineBackground(() => {
   });
   browser.windows.onRemoved.addListener((windowId) => {
     void handlePromptWindowClosed(windowId);
+    void handleUnlockWindowClosed(windowId);
   });
+  const extensionOrigin = browser.runtime.getURL('');
   // sendResponse + `return true` is the one response mechanism native to
   // both Chromium and Firefox; returning a Promise only works behind the
   // webextension-polyfill, which WXT no longer ships.
   browser.runtime.onMessage.addListener(
     (message: unknown, sender, sendResponse) => {
+      // onMessage is shared with the content script; UI messages are only
+      // honored from the extension's own pages.
+      if (isUiMessage(message)) {
+        if (
+          sender.url === undefined ||
+          !sender.url.startsWith(extensionOrigin)
+        ) {
+          return;
+        }
+        void handleUiMessage(message).then((response) => {
+          sendResponse(response);
+        });
+        return true;
+      }
       if (!isBackgroundRequest(message)) {
         return;
       }
@@ -405,6 +521,4 @@ export default defineBackground(() => {
       return true;
     },
   );
-  (globalThis as { autographDevSeed?: typeof devSeed }).autographDevSeed =
-    devSeed;
 });

@@ -14,7 +14,7 @@ export default defineConfig({
     name: 'autograph',
     description:
       'NIP-07 signer for sovereign identity: sign Nostr events without your keys ever leaving the extension.',
-    permissions: ['storage'],
+    permissions: ['storage', 'clipboardWrite'],
     web_accessible_resources: [
       {
         resources: ['nostr-provider.js'],
