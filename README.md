@@ -52,9 +52,27 @@ The add-on's AMO listing (unlisted channel) is managed at
 builds and zips both targets, submits the Firefox build for AMO unlisted
 signing (`web-ext sign`; credentials come from `WEB_EXT_API_KEY` /
 `WEB_EXT_API_SECRET` in the operator's environment, never the repo), and
-generates `dist/updates.json`. The signed `.xpi` and `updates.json` are then
-published to `https://buildtall.systems/autograph/` — the `.xpi` under its
-versioned name `autograph-<version>.xpi` as linked from `updates.json`.
+generates `dist/updates.json`.
+
+Publication is declarative via the buildtall monorepo. The distribution
+files are committed at `deploy/dist/autograph/` there and served from the
+Nix store by the `buildtall.systems` nginx vhost at
+`https://buildtall.systems/autograph/`. To publish a release:
+
+1. Run `make release BUMP=patch|minor|major` here (AMO signs the `.xpi`;
+   the signed file downloads into `dist/` under AMO's slug-based name).
+2. In the monorepo, copy the signed `.xpi` to
+   `deploy/dist/autograph/autograph-<version>.xpi` — the canonical
+   versioned name that `updates.json` links — and copy `dist/updates.json`
+   over `deploy/dist/autograph/updates.json`. Keep prior `.xpi` versions
+   in place; their `update_link`s remain live.
+3. Commit on a monorepo feature branch, pass `make eval`, merge to
+   develop, and run `make deploy-prod`.
+
+Installed Firefox profiles pick up the new version on their next update
+check against `updates.json`. Hand-placing files on the host is never
+part of the process — the served directory is a Nix store path rebuilt
+from the committed artifacts on every deploy.
 
 ## Development
 
