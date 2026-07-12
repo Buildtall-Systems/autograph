@@ -2,6 +2,45 @@
 
 ## 2026-07-12
 
+- Phase 3 (provider, relay, background dispatch) implemented: the NIP-07
+  pipeline works end-to-end mechanically. `entrypoints/nostr-provider/`
+  (defineUnlistedScript: window.nostr with getPublicKey/signEvent/getRelays/
+  nip04.*/nip44.*, pending-promise map keyed by crypto.getRandomValues ids,
+  factory form so correlation logic tests without a DOM),
+  `entrypoints/autograph.content/` (ISOLATED, <all_urls>, document_end,
+  injectScript('/nostr-provider.js'), relays page→background with
+  location.host stamped by the content script, responds to message.origin),
+  `entrypoints/background/` (dispatch table keyed by capability with
+  per-entry needsSecret so getPublicKey/getRelays skip the vault; flow =
+  grant → prompt → unlocked vault → execute via withSecretKey; prompt queue
+  persisted in storage.local with host+capability dedup, single popup
+  window, close-as-reject, mutex-guarded queue writes; answerPrompt stores
+  grants per condition, 'single' never persisted, 'no' persists a deny; no
+  onMessageExternal). lib/protocol.ts gains newRequestId + message/param
+  type guards shared by all three hops. wxt.config.ts declares
+  web_accessible_resources (MV3 object form). Placeholder
+  entrypoints/prompt/index.html added beyond the plan's file list —
+  windows.create needs a real typed page target; Phase 4 replaces it.
+  Phase-3 scaffolding to remove in Phase 4: background console helper
+  `autographDevSeed(passphrase, host)` seeds vault + generated profile +
+  forever grant for manual checks. 52 new tests (109 total) including the
+  full provider→relay→background round-trip asserting a verified signature.
+  Learned: WXT rejects flat entrypoint files sharing a name with test
+  siblings — directory entrypoints (index.ts + tests alongside) are the
+  sanctioned form; WXT 0.20 ships no polyfill, so the background onMessage
+  listener must use native sendResponse + `return true` (a returned Promise
+  is polyfill-only), while fakeBrowser models only the polyfill convention —
+  integration tests bridge with an adapter listener and the native path
+  lands in the manual browser check. All gates green.
+- Manual verification: operator seeded a grant via autographDevSeed in the
+  background inspect console (dev-firefox) and confirmed
+  `window.nostr.getPublicKey()` on drss.io resolves the seeded pubkey.
+  First attempt failed with ReferenceError because the helper was invoked
+  from the global Browser Console — the helper exists only in the extension
+  background's own console (about:debugging → Inspect). The failed attempt
+  itself proved the pipeline: `autograph: no active profile` originated in
+  background dispatch and propagated back through relay and provider.
+
 - Phase 2 (core domain modules) implemented: lib/protocol.ts (capability
   names, message envelopes), lib/permissions.ts (ladder 1/5/10/20, grant
   conditions forever/5m/1h/8h/custom/single/no, expiry + pruning),

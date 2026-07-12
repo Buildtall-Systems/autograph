@@ -15,5 +15,11 @@ export default defineConfig({
     description:
       'NIP-07 signer for sovereign identity: sign Nostr events without your keys ever leaving the extension.',
     permissions: ['storage'],
+    web_accessible_resources: [
+      {
+        resources: ['nostr-provider.js'],
+        matches: ['*://*/*'],
+      },
+    ],
   },
 });
