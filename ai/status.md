@@ -2,6 +2,19 @@
 
 ## 2026-07-12
 
+- Phase 2 (core domain modules) implemented: lib/protocol.ts (capability
+  names, message envelopes), lib/permissions.ts (ladder 1/5/10/20, grant
+  conditions forever/5m/1h/8h/custom/single/no, expiry + pruning),
+  lib/vault.ts (AES-GCM-256 + PBKDF2-SHA256 600k, verifier blob,
+  storage.session unlock cache with lazy auto-lock deadline, passphrase
+  change rewraps blobs, no plaintext-at-rest path), lib/profiles.ts
+  (multi-profile CRUD keyed by hex pubkey, active pointer with successor
+  promotion, wss://-only relays, per-profile grants with persisted pruning),
+  lib/nostr.ts (nostr-tools 2.23.9 boundary: finalize+verify with pubkey
+  guard, nip04 legacy, nip44 with zeroed LRU conversation-key cache, nip19,
+  withSecretKey zeroing helper). 57 unit tests. tsconfig gains
+  noUncheckedIndexedAccess. All gates green.
+
 - Project inaugurated. Standalone repository (not part of the monorepo) at
   `projects/autograph`, published to `Buildtall-Systems/autograph`, MIT
   license, git-flow (master/develop).
@@ -37,6 +50,10 @@
   only "fix" is a wxt downgrade — declined); monorepo fonts.css declares
   family 'Avenir Next' while @theme uses 'AvenirNextLTPro', and references
   two font files that don't exist (drift in monorepo, not touched).
+- Manual verification: operator loaded dev-firefox; popup renders
+  buildtall-dark ("autograph / NIP-07 signer"). scratch/ template debris
+  removed by operator (was breaking Vite dependency scan); all gates re-run
+  green. Phase 1 accepted pending Chromium spot-check.
 - CORRECTION (operator): theme must come from btk, not drss-legacy
   (deprecated). Re-sourced verbatim from
   `projects/buildtall-users/btk/themes/buildtall/assets/main.css` — token
