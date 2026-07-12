@@ -37,6 +37,12 @@
   only "fix" is a wxt downgrade — declined); monorepo fonts.css declares
   family 'Avenir Next' while @theme uses 'AvenirNextLTPro', and references
   two font files that don't exist (drift in monorepo, not touched).
+- CORRECTION (operator): theme must come from btk, not drss-legacy
+  (deprecated). Re-sourced verbatim from
+  `projects/buildtall-users/btk/themes/buildtall/assets/main.css` — token
+  namespace `--color-dark-*`, richer semantic set (surface, primary-hover,
+  border, error-*), theme IDs `buildtall-dark`/`buildtall-light`, system
+  sans-serif stack. Vendored Avenir fonts REMOVED (btk theme has none).
 - Plan written:
   `thoughts/plans/2026-07-12_08-54-16_autograph-nip07-signer.md` — 5 phases
   (toolchain/scaffold, core domain modules, provider+relay+background, UI,

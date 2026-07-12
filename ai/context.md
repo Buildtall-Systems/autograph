@@ -18,5 +18,7 @@ autograph's dependencies to those entries.
 Notes:
 - **nos2x-fox** is the functional reference only; UI look and feel is NOT
   adopted (autograph uses the buildtall iceberg dark/light themes).
-- Iceberg theme canon: `projects/buildtall-users/cmd/buildtall.systems/css/main.css`
-  (copied verbatim into `assets/css/main.css` here).
+- Theme canon: **btk** — `projects/buildtall-users/btk/themes/buildtall/`
+  (`assets/main.css` copied verbatim into `assets/css/main.css` here;
+  theme IDs `buildtall-dark` default / `buildtall-light` from `theme.go`).
+  drss-legacy is deprecated — never source theme or fonts from it.

@@ -1,81 +1,91 @@
 @import 'tailwindcss';
 
-@font-face {
-  font-family: 'AvenirNextLTPro';
-  src: url('../fonts/AvenirNextLTPro-Regular.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'AvenirNextLTPro';
-  src: url('../fonts/AvenirNextLTPro-Bold.otf') format('opentype');
-  font-weight: bold;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'AvenirNextLTPro';
-  src: url('../fonts/AvenirNextLTPro-It.otf') format('opentype');
-  font-weight: normal;
-  font-style: italic;
-}
-
-@font-face {
-  font-family: 'AvenirNextLTPro';
-  src: url('../fonts/AvenirNextLTPro-Demi.otf') format('opentype');
-  font-weight: 600;
-  font-style: normal;
-}
-
 @theme {
-  --font-avenir: 'AvenirNextLTPro', sans-serif;
+  --color-dark-bg: #161821;
+  --color-dark-bg-subtle: #1e2132;
+  --color-dark-bg-muted: #0f1117;
+  --color-dark-bg-highlight: #272c42;
+  --color-dark-bg-elevated: #3d425b;
+  --color-dark-fg: #c6c8d1;
+  --color-dark-fg-subtle: #6b7089;
+  --color-dark-fg-muted: #444b71;
+  --color-dark-blue: #84a0c6;
+  --color-dark-cyan: #89b8c2;
+  --color-dark-green: #b4be82;
+  --color-dark-purple: #a093c7;
+  --color-dark-red: #e27878;
+  --color-dark-orange: #e2a478;
+  --color-dark-yellow: #e4aa80;
 
-  --color-iceberg-bg: #161821;
-  --color-iceberg-bg-subtle: #1e2132;
-  --color-iceberg-bg-muted: #0f1117;
-  --color-iceberg-bg-highlight: #272c42;
-  --color-iceberg-bg-elevated: #3d425b;
-  --color-iceberg-fg: #c6c8d1;
-  --color-iceberg-fg-subtle: #6b7089;
-  --color-iceberg-fg-muted: #444b71;
-  --color-iceberg-blue: #84a0c6;
-  --color-iceberg-cyan: #89b8c2;
-  --color-iceberg-green: #b4be82;
-  --color-iceberg-purple: #a093c7;
-  --color-iceberg-red: #e27878;
-  --color-iceberg-orange: #e2a478;
-  --color-iceberg-yellow: #e4aa80;
+  --color-bg: var(--color-dark-bg);
+  --color-bg-subtle: var(--color-dark-bg-subtle);
+  --color-bg-muted: var(--color-dark-bg-muted);
+  --color-bg-highlight: var(--color-dark-bg-highlight);
+  --color-bg-elevated: var(--color-dark-bg-elevated);
+  --color-surface: var(--color-dark-bg-subtle);
+  --color-fg: var(--color-dark-fg);
+  --color-fg-subtle: var(--color-dark-fg-subtle);
+  --color-fg-muted: var(--color-dark-fg-muted);
+  --color-primary: var(--color-dark-blue);
+  --color-primary-hover: #95b1d4;
+  --color-primary-fg: var(--color-dark-bg);
+  --color-secondary: var(--color-dark-cyan);
+  --color-accent: var(--color-dark-green);
+  --color-accent-fg: var(--color-dark-bg);
+  --color-border: var(--color-dark-green);
+  --color-danger: var(--color-dark-red);
+  --color-error: var(--color-dark-red);
+  --color-error-hover: #f09090;
+  --color-error-bg: #3d2828;
+  --color-error-fg: var(--color-dark-fg);
+  --color-warning: var(--color-dark-orange);
 
-  --color-bg: var(--color-iceberg-bg);
-  --color-bg-subtle: var(--color-iceberg-bg-subtle);
-  --color-bg-muted: var(--color-iceberg-bg-muted);
-  --color-bg-highlight: var(--color-iceberg-bg-highlight);
-  --color-bg-elevated: var(--color-iceberg-bg-elevated);
-  --color-fg: var(--color-iceberg-fg);
-  --color-fg-subtle: var(--color-iceberg-fg-subtle);
-  --color-fg-muted: var(--color-iceberg-fg-muted);
-  --color-primary: var(--color-iceberg-blue);
-  --color-secondary: var(--color-iceberg-cyan);
-  --color-accent: var(--color-iceberg-green);
-  --color-danger: var(--color-iceberg-red);
-  --color-warning: var(--color-iceberg-orange);
+  --font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+@utility prose-buildtall {
+  --tw-prose-body: var(--color-fg);
+  --tw-prose-headings: var(--color-fg);
+  --tw-prose-lead: var(--color-fg-subtle);
+  --tw-prose-links: var(--color-primary);
+  --tw-prose-bold: var(--color-fg);
+  --tw-prose-counters: var(--color-fg-subtle);
+  --tw-prose-bullets: var(--color-fg-muted);
+  --tw-prose-hr: var(--color-fg-muted);
+  --tw-prose-quotes: var(--color-fg-subtle);
+  --tw-prose-quote-borders: var(--color-accent);
+  --tw-prose-captions: var(--color-fg-subtle);
+  --tw-prose-kbd: var(--color-fg);
+  --tw-prose-code: var(--color-secondary);
+  --tw-prose-pre-code: var(--color-fg);
+  --tw-prose-pre-bg: var(--color-bg-muted);
+  --tw-prose-th-borders: var(--color-fg-muted);
+  --tw-prose-td-borders: var(--color-bg-highlight);
 }
 
 @layer base {
-  [data-theme='iceberg-light'] {
+  [data-theme='buildtall-light'] {
     --color-bg: #e8e9ec;
     --color-bg-subtle: #d2d4de;
     --color-bg-muted: #c6c8d1;
     --color-bg-highlight: #dcdfe7;
     --color-bg-elevated: #cad0de;
+    --color-surface: #d2d4de;
     --color-fg: #33374c;
     --color-fg-subtle: #6b7089;
     --color-fg-muted: #8389a3;
     --color-primary: #2d539e;
+    --color-primary-hover: #3d64b8;
+    --color-primary-fg: #ffffff;
     --color-secondary: #3f83a6;
     --color-accent: #668e3d;
+    --color-accent-fg: #ffffff;
+    --color-border: #668e3d;
     --color-danger: #cc3768;
+    --color-error: #cc3768;
+    --color-error-hover: #e14878;
+    --color-error-bg: #f5e5ea;
+    --color-error-fg: #8a2448;
     --color-warning: #c57339;
   }
 }

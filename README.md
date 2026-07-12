@@ -33,7 +33,7 @@ Built extensions land in `.output/`. To load temporarily:
 
 The stack is WXT (one TypeScript codebase, Firefox MV2 + Chromium MV3
 builds), nostr-tools for all cryptography, and Tailwind CSS v4 with the
-buildtall iceberg dark/light theme tokens and vendored Avenir Next.
+btk buildtall theme tokens (`buildtall-dark` default, `buildtall-light`).
 
 ## Roadmap
 
