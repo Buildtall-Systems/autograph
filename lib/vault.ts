@@ -18,12 +18,16 @@ interface VaultMeta {
   saltB64: string;
   iterations: number;
   verifier: EncryptedBlob;
-  autolockSeconds: number;
+  // null means the vault never auto-locks — it stays unlocked until the
+  // browser closes (session storage is cleared) or the user locks manually.
+  autolockSeconds: number | null;
 }
 
 interface VaultSession {
   keyB64: string;
-  deadlineMs: number;
+  // null means no deadline; the session persists until the browser clears
+  // session storage or lockVault() removes it.
+  deadlineMs: number | null;
 }
 
 export class VaultExistsError extends Error {
@@ -158,7 +162,7 @@ async function readSession(): Promise<VaultSession | null> {
   if (session === null) {
     return null;
   }
-  if (Date.now() >= session.deadlineMs) {
+  if (session.deadlineMs !== null && Date.now() >= session.deadlineMs) {
     await browser.storage.session.remove(VAULT_SESSION_STORAGE_KEY);
     return null;
   }
@@ -167,13 +171,30 @@ async function readSession(): Promise<VaultSession | null> {
 
 async function startSession(
   keyBytes: Uint8Array,
-  autolockSeconds: number,
+  autolockSeconds: number | null,
 ): Promise<void> {
   const session: VaultSession = {
     keyB64: bytesToBase64(keyBytes),
-    deadlineMs: Date.now() + autolockSeconds * 1000,
+    deadlineMs:
+      autolockSeconds === null ? null : Date.now() + autolockSeconds * 1000,
   };
   await browser.storage.session.set({ [VAULT_SESSION_STORAGE_KEY]: session });
+}
+
+// Re-base the live session's deadline from now, so a changed timeout — most
+// importantly switching to "never" (null) — takes effect on the current
+// session instead of only on the next unlock. No-op when locked.
+async function rearmSession(autolockSeconds: number | null): Promise<void> {
+  const session = await readSession();
+  if (session === null) {
+    return;
+  }
+  const next: VaultSession = {
+    keyB64: session.keyB64,
+    deadlineMs:
+      autolockSeconds === null ? null : Date.now() + autolockSeconds * 1000,
+  };
+  await browser.storage.session.set({ [VAULT_SESSION_STORAGE_KEY]: next });
 }
 
 async function sessionKey(): Promise<CryptoKey> {
@@ -199,7 +220,7 @@ export async function isUnlocked(): Promise<boolean> {
 
 export async function initializeVault(
   passphrase: string,
-  autolockSeconds: number = DEFAULT_AUTOLOCK_SECONDS,
+  autolockSeconds: number | null = DEFAULT_AUTOLOCK_SECONDS,
 ): Promise<void> {
   if (await vaultExists()) {
     throw new VaultExistsError();
@@ -279,24 +300,30 @@ export async function decryptSecret(blob: EncryptedBlob): Promise<Uint8Array> {
   return decryptWithKey(key, blob);
 }
 
-export function validateAutolockSeconds(seconds: number): number {
+export function validateAutolockSeconds(seconds: number | null): number | null {
+  if (seconds === null) {
+    return null;
+  }
   if (!Number.isInteger(seconds) || seconds <= 0) {
     throw new Error(
-      `auto-lock timeout must be a positive integer, got ${String(seconds)}`,
+      `auto-lock timeout must be a positive integer or null, got ${String(seconds)}`,
     );
   }
   return seconds;
 }
 
-export async function getAutolockSeconds(): Promise<number> {
+export async function getAutolockSeconds(): Promise<number | null> {
   const meta = await requireMeta();
   return meta.autolockSeconds;
 }
 
-export async function setAutolockSeconds(seconds: number): Promise<void> {
+export async function setAutolockSeconds(
+  seconds: number | null,
+): Promise<void> {
   const meta = await requireMeta();
   meta.autolockSeconds = validateAutolockSeconds(seconds);
   await browser.storage.local.set({ [VAULT_META_STORAGE_KEY]: meta });
+  await rearmSession(meta.autolockSeconds);
 }
 
 export async function changePassphrase(

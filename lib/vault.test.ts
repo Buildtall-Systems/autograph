@@ -131,9 +131,30 @@ describe('vault', () => {
 
   it('validates auto-lock bounds', () => {
     expect(validateAutolockSeconds(1)).toBe(1);
+    expect(validateAutolockSeconds(null)).toBeNull();
     expect(() => validateAutolockSeconds(0)).toThrow();
     expect(() => validateAutolockSeconds(-5)).toThrow();
     expect(() => validateAutolockSeconds(1.5)).toThrow();
+  });
+
+  it('never auto-locks when the timeout is null', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-13T12:00:00Z'));
+    await initializeVault(PASSPHRASE, null);
+    expect(await getAutolockSeconds()).toBeNull();
+    expect(await isUnlocked()).toBe(true);
+    vi.setSystemTime(new Date('2026-08-13T12:00:00Z'));
+    expect(await isUnlocked()).toBe(true);
+    await expect(encryptSecret(SECRET)).resolves.toBeDefined();
+  });
+
+  it('switches an existing vault to never auto-lock', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-13T12:00:00Z'));
+    await initializeVault(PASSPHRASE, 60);
+    await setAutolockSeconds(null);
+    vi.setSystemTime(new Date('2026-07-13T13:00:00Z'));
+    expect(await isUnlocked()).toBe(true);
   });
 
   it('persists a changed auto-lock timeout', async () => {

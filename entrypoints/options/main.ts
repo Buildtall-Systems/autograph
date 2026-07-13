@@ -195,6 +195,7 @@ function vaultSection(state: {
   section.append(statusRow);
 
   const autolockError = errorLine();
+  const never = state.autolockSeconds === null;
   const autolockInput = el('input', {
     className: `${INPUT} w-20`,
     attrs: { type: 'text', 'aria-label': 'auto-lock minutes' },
@@ -204,16 +205,35 @@ function vaultSection(state: {
       Math.floor(state.autolockSeconds / SECONDS_PER_MINUTE),
     );
   }
+  autolockInput.disabled = never;
+  const neverCheckbox = el('input', {
+    attrs: { type: 'checkbox', 'aria-label': 'never auto-lock' },
+  });
+  neverCheckbox.checked = never;
+  neverCheckbox.addEventListener('change', () => {
+    autolockInput.disabled = neverCheckbox.checked;
+  });
   section.append(
     el('h3', { className: SUBHEADING, text: 'Auto-lock timeout (minutes)' }),
     el('div', { className: 'mt-2 flex items-center gap-2' }, [
       autolockInput,
+      el(
+        'label',
+        { className: 'flex items-center gap-1 text-sm text-fg-subtle' },
+        [neverCheckbox, 'Never'],
+      ),
       el('button', {
         className: BUTTON,
         text: 'Save',
         attrs: { type: 'button' },
         onClick: () => {
           autolockError.clear();
+          if (neverCheckbox.checked) {
+            void setAutolockSeconds(null).catch((error: unknown) => {
+              autolockError.show(asMessage(error));
+            });
+            return;
+          }
           const minutes = Number.parseInt(autolockInput.value, 10);
           void setAutolockSeconds(minutes * SECONDS_PER_MINUTE).catch(
             (error: unknown) => {
@@ -223,6 +243,10 @@ function vaultSection(state: {
         },
       }),
     ]),
+    el('p', {
+      className: 'mt-1 text-xs text-fg-subtle',
+      text: '"Never" keeps the vault unlocked until the browser closes or you lock it manually.',
+    }),
     autolockError.node,
   );
 
