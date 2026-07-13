@@ -702,10 +702,8 @@ async function render(): Promise<void> {
 
   clearChildren(app);
   app.append(
-    el(
-      'main',
-      { className: 'mx-auto min-h-screen max-w-2xl bg-bg p-6 text-fg' },
-      [
+    el('div', { className: 'min-h-screen bg-bg text-fg' }, [
+      el('main', { className: 'mx-auto max-w-2xl p-6' }, [
         el('h1', {
           className: 'text-xl font-bold text-primary',
           text: 'autograph options',
@@ -713,8 +711,8 @@ async function render(): Promise<void> {
         vaultSection({ exists, unlocked, autolockSeconds, profiles }),
         profilesSection({ unlocked, activePubkey, profiles }),
         themeSection(),
-      ],
-    ),
+      ]),
+    ]),
   );
 }
 
