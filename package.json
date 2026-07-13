@@ -2,7 +2,7 @@
   "name": "autograph",
   "description": "NIP-07 signer for sovereign identity: sign Nostr events without your keys ever leaving the extension.",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "scripts": {
     "dev": "wxt",
