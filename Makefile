@@ -1,4 +1,4 @@
-.PHONY: help lint fmt test build dev dev-firefox zip sign updates release
+.PHONY: help lint fmt test build dev dev-firefox zip sign updates release icons
 
 NIX := nix develop -c
 BUMP ?= patch
@@ -40,3 +40,6 @@ updates: ## generate dist/updates.json for the current version
 release: ## version bump + build + zip + sign + updates.json (BUMP=patch|minor|major)
 	$(NIX) npm version $(BUMP) --no-git-tag-version
 	$(MAKE) build zip sign updates
+
+icons: ## rasterize assets/icon.svg to public/icon/{16,32,48,96,128}.png
+	for s in 16 32 48 96 128; do rsvg-convert -w $$s -h $$s assets/icon.svg -o public/icon/$$s.png; done

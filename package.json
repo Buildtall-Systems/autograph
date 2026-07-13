@@ -1,6 +1,6 @@
 {
   "name": "autograph",
-  "description": "Browser extension for sovereign identity: NIP-07 signer, growing into a list-of-lists interface",
+  "description": "NIP-07 signer for sovereign identity: sign Nostr events without your keys ever leaving the extension.",
   "private": true,
   "version": "0.1.0",
   "type": "module",

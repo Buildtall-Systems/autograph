@@ -3,7 +3,8 @@
 
 export const ADDON_ID = 'autograph@buildtall.systems';
 export const GECKO_STRICT_MIN_VERSION = '128.0';
-export const DIST_BASE_URL = 'https://buildtall.systems/autograph';
+export const HOMEPAGE_URL = 'https://buildtall.systems';
+export const DIST_BASE_URL = `${HOMEPAGE_URL}/autograph`;
 export const UPDATES_URL = `${DIST_BASE_URL}/updates.json`;
 
 export function xpiUrl(version: string): string {

@@ -4,6 +4,7 @@ import { truncateMiddle } from '@/components/format';
 import { initTheme } from '@/components/theme';
 import { pubkeyToNpub } from '@/lib/nostr';
 import { getActivePubkey, listProfiles, setActivePubkey } from '@/lib/profiles';
+import { HOMEPAGE_URL } from '@/lib/dist';
 import { UI_TAG, sendUiMessage } from '@/lib/ui-messages';
 import { isUnlocked, vaultExists } from '@/lib/vault';
 
@@ -157,7 +158,7 @@ async function render(): Promise<void> {
   }
 
   page.append(
-    el('div', { className: 'mt-4' }, [
+    el('div', { className: 'mt-4 flex items-center justify-between' }, [
       el('button', {
         className: LINK_BUTTON,
         text: 'Options',
@@ -166,6 +167,11 @@ async function render(): Promise<void> {
           void browser.runtime.openOptionsPage();
           window.close();
         },
+      }),
+      el('a', {
+        className: LINK_BUTTON,
+        text: 'buildtall.systems',
+        attrs: { href: HOMEPAGE_URL, target: '_blank', rel: 'noreferrer' },
       }),
     ]),
   );

@@ -1,6 +1,11 @@
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'wxt';
-import { ADDON_ID, GECKO_STRICT_MIN_VERSION, UPDATES_URL } from './lib/dist';
+import {
+  ADDON_ID,
+  GECKO_STRICT_MIN_VERSION,
+  HOMEPAGE_URL,
+  UPDATES_URL,
+} from './lib/dist';
 
 export default defineConfig({
   vite: () => ({
@@ -12,9 +17,7 @@ export default defineConfig({
     },
   },
   manifest: ({ browser }) => ({
-    name: 'autograph',
-    description:
-      'NIP-07 signer for sovereign identity: sign Nostr events without your keys ever leaving the extension.',
+    homepage_url: HOMEPAGE_URL,
     permissions: ['storage', 'clipboardWrite'],
     web_accessible_resources: [
       {
