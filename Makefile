@@ -31,8 +31,8 @@ zip: ## package both targets
 	$(NIX) npm run zip
 	$(NIX) npm run zip:firefox
 
-sign: ## AMO unlisted signing of the firefox build (WEB_EXT_API_KEY/SECRET from operator env)
-	$(NIX) npx web-ext sign --source-dir .output/firefox-mv2 --artifacts-dir dist --channel unlisted
+sign: ## AMO unlisted signing of the firefox build (WEB_EXT_API_KEY/SECRET from keyring via secretspec)
+	$(NIX) secretspec run --provider keyring -- npx web-ext sign --source-dir .output/firefox-mv2 --artifacts-dir dist --channel unlisted
 
 updates: ## generate dist/updates.json for the current version
 	$(NIX) node scripts/gen-updates.ts

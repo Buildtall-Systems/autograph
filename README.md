@@ -48,34 +48,50 @@ The add-on's AMO listing (unlisted channel) is managed at
 — signing status, submitted versions, and signed-file downloads live there
 (AMO slug `bd20a5d1f1544cc2b922`, addon id `autograph@buildtall.systems`).
 
+### Credentials
+
+Signing needs AMO API credentials, supplied to `web-ext sign` from the
+system keyring via [secretspec](https://secretspec.dev). Set them once per
+machine (the devShell provides the `secretspec` binary):
+
+```
+secretspec set WEB_EXT_API_KEY --provider keyring
+secretspec set WEB_EXT_API_SECRET --provider keyring
+```
+
+`make sign` runs `web-ext sign` under `secretspec run --provider keyring`,
+which injects the two values as environment variables for the duration of
+the command. The declared secrets live in `secretspec.toml`; the values
+never touch the repo or the shell environment.
+
+### Signing
+
 `make release` bumps the version (`BUMP=patch|minor|major`, default patch),
-builds and zips both targets, submits the Firefox build for AMO unlisted
-signing (`web-ext sign`; credentials come from `WEB_EXT_API_KEY` /
-`WEB_EXT_API_SECRET` in the operator's environment, never the repo), and
-generates `dist/updates.json`.
+builds and zips both targets, and submits the Firefox build for AMO
+unlisted signing. AMO returns the signed `.xpi` into `dist/`.
 
-Publication is declarative via the buildtall monorepo. The distribution
-files are committed at `deploy/dist/autograph/` there and served from the
-Nix store by the `buildtall.systems` nginx vhost at
-`https://buildtall.systems/autograph/`. To publish a release:
+### Publication
 
-1. Run `make release BUMP=patch|minor|major` here (AMO signs the `.xpi`;
-   the signed file downloads into `dist/` under AMO's slug-based name).
-2. In the monorepo, copy the signed `.xpi` to
-   `deploy/dist/autograph/autograph-<version>.xpi` — the canonical
-   versioned name that `updates.json` links — and copy `dist/updates.json`
-   over `deploy/dist/autograph/updates.json`. Keep prior `.xpi` versions
-   in place; their `update_link`s remain live.
-3. Update the front-page card's install link to the new `.xpi` filename
-   in `cmd/buildtall.systems/views/home.templ` and regenerate templates
-   (`make templ` in `cmd/buildtall.systems`).
-4. Commit on a monorepo feature branch, pass `make eval`, merge to
-   develop, and run `make deploy-prod`.
+Distribution is content-addressed: the signed `.xpi` is uploaded to a
+Blossom server (addressed by its SHA-256 hash) and announced by two signed
+Nostr events — a NIP-94 file-metadata event (kind 1063) and an addressable
+release event (kind 30063) that carries the current version. Publication is
+performed from the buildtall.systems admin releases page, which signs the
+events with the operator's key via NIP-07:
 
-Installed Firefox profiles pick up the new version on their next update
-check against `updates.json`. Hand-placing files on the host is never
-part of the process — the served directory is a Nix store path rebuilt
-from the committed artifacts on every deploy.
+1. Run `make release BUMP=patch|minor|major` here; AMO signs the `.xpi`
+   into `dist/`.
+2. Open the admin releases page on `buildtall.systems`, select the
+   **autograph** app, and upload the signed `.xpi`. The page stores the
+   blob on Blossom and publishes the kind 1063 and kind 30063 events.
+
+Firefox update checks hit `https://buildtall.systems/autograph/updates.json`,
+served by a dynamic handler that derives the manifest — including the
+`update_link` (the raw Blossom blob URL) and the `update_hash`
+(`sha256:<hash>`) — from the published release events. No monorepo commit,
+no `deploy-prod`, and no hand-placed host files are part of a release;
+installed Firefox profiles pick up the new version on their next update
+check.
 
 ## Development
 
