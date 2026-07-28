@@ -2,6 +2,21 @@
 
 ## 2026-07-28
 
+- operations#53 Phase 3 parity release: operator ran `make sign` (AMO
+  signed the unlisted 0.2.1.1 into `dist/`) and published the signed
+  `.xpi` through the /admin/releases page (Blossom upload plus kind
+  1063/30063 events; release notes state parity, no functional changes
+  since 0.1.3). Prod verified: `/autograph/updates.json` serves 0.2.1.1
+  with `update_hash` sha256:9839b8e1eb0ef158017e3eb66c0afee26f798ea540
+  36d306930fd9cda6f1ae64 and a Blossom `update_link`;
+  `/autograph/install` answers 200 `application/x-xpinstall`; the served
+  `.xpi`'s sha256 matches the advertised hash, its manifest reads
+  0.2.1.1 with `update_url` back at updates.json, and META-INF
+  signature files confirm the AMO-signed build. Remaining in #53: AMO
+  review of listed 0.2.1 (operator watches email), Phase 4 CWS
+  registration and submission, Phase 5 copy flip after both listings
+  are live.
+
 - operations#53 Phase 3 AMO submission: the first upload of the listed
   0.2.0 artifact went to the self-distribution channel (the new-version
   flow inherits the add-on's existing channel and never showed a chooser);
