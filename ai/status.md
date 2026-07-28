@@ -2,6 +2,16 @@
 
 ## 2026-07-28
 
+- operations#53 Phase 3 screenshots: three store screenshots captured at
+  1280x800 dark theme into `assets/store/` (unlock flow, approval prompt
+  over npub.dev, options page), operator-approved. Capture method: headless
+  Firefox driven over raw WebDriver (geckodriver, curl+jq), the 0.2.0
+  listed `.xpi` installed as a temporary add-on, throwaway vault and
+  generated key in a temp profile; prompt flow exercised end to end
+  (postMessage through content script to background, prompt window, 1 hour
+  grant). Compositing with ImageMagick; driver scripts in gitignored
+  `scratch/shots/`.
+
 - operations#53 Phase 3 repo side (AMO listed submission prep) on
   `feature/store-listings`: version bumped 0.1.3 to 0.2.0 (minor; the
   listing milestone takes the minor bump, 0.1.3 is consumed on the unlisted
