@@ -14,7 +14,10 @@
   Submitted for review, visibility public (the console offered no
   publish-mode choice at submission; current CWS publishes automatically
   after review unless deferred publishing is pre-enabled). Awaiting CWS
-  review. Remaining: record the item ID and store URL for Phase 5.
+  review. Item ID `glkgdofddjjikhlajknbclpdplkpieda`; public URL once
+  live:
+  https://chromewebstore.google.com/detail/glkgdofddjjikhlajknbclpdplkpieda
+  (Phase 5 store-link target).
 
   Also received the AMO auto-approval email for unlisted 0.2.1.1
   ("automatic validation"); the listed 0.2.1 review is still pending,
