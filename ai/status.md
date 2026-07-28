@@ -2,6 +2,24 @@
 
 ## 2026-07-28
 
+- operations#53 Phase 3 AMO submission: the first upload of the listed
+  0.2.0 artifact went to the self-distribution channel (the new-version
+  flow inherits the add-on's existing channel and never showed a chooser);
+  AMO auto-signed it and the version number is permanently consumed.
+  Recovery: operator deleted the stray 0.2.0 in the Developer Hub; version
+  bumped to 0.2.1 (listed/CWS) with 0.2.1.1 unlisted parity; artifacts
+  rebuilt and divergence re-asserted; docs/store-listing.md and README
+  version references updated. Resubmitted via the explicit listed-channel
+  route (/versions/submit/upload-listed, verified against addons-server
+  urls.py): validation passed (0 errors, 1 warning), sources zip attached,
+  listing fields entered from docs/store-listing.md, slug `autograph-nostr`
+  (`autograph` taken; public URL
+  addons.mozilla.org/firefox/addon/autograph-nostr), icon 128 uploaded,
+  three captioned screenshots added, listing saved. Status: Version
+  Submitted, awaiting AMO review/publication. Firefox for Android left
+  unticked: the prompt and unlock flows depend on browser.windows.create,
+  absent on Android.
+
 - operations#53 Phase 3 screenshots: three store screenshots captured at
   1280x800 dark theme into `assets/store/` (unlock flow, approval prompt
   over npub.dev, options page), operator-approved. Capture method: headless

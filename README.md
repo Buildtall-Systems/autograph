@@ -63,8 +63,8 @@ autograph distributes through three channels from one codebase:
   packaged with `make zip-listed`.
 - **AMO unlisted**: the self-hosted `.xpi` behind
   `https://buildtall.systems/autograph/updates.json`. Carries the canonical
-  version with a fourth segment appended (listed `0.2.0`, unlisted
-  `0.2.0.1`), because AMO consumes version numbers per add-on across both
+  version with a fourth segment appended (listed `0.2.1`, unlisted
+  `0.2.1.1`), because AMO consumes version numbers per add-on across both
   channels. This is the default channel for `make build` and `make sign`.
 - **Chrome Web Store**: the chrome-mv3 zip at the canonical version.
 

@@ -8,8 +8,10 @@ change this file first, then the consoles.
 
 - **Name**: autograph
 - **Add-on id (Firefox)**: `autograph@buildtall.systems`
-- **Version (this submission)**: 0.2.0 listed and Chrome Web Store; 0.2.0.1
-  unlisted parity release on the self-hosted channel
+- **Version (this submission)**: 0.2.1 listed and Chrome Web Store; 0.2.1.1
+  unlisted parity release on the self-hosted channel. (0.2.0 is burned: it
+  was submitted to the self-distribution channel by mistake, and AMO never
+  frees version numbers.)
 - **Homepage**: <https://buildtall.systems/autograph/>
 - **Support**: <https://github.com/Buildtall-Systems/autograph/issues>
 - **Privacy policy URL**: <https://buildtall.systems/autograph/privacy>
@@ -17,10 +19,10 @@ change this file first, then the consoles.
 
 ## Slug (AMO)
 
-Proposed public slug: `autograph`. Set in the Developer Hub before the first
-listed publication; the current auto-generated slug is
-`bd20a5d1f1544cc2b922`. If `autograph` is taken, the operator picks the
-fallback. The final public URL feeds the Phase 5 copy flip.
+Public slug: `autograph-nostr`, set during the 0.2.1 listed submission
+(`autograph` was already taken). Public URL:
+<https://addons.mozilla.org/firefox/addon/autograph-nostr>. This URL feeds
+the Phase 5 copy flip.
 
 ## Summary
 
@@ -71,7 +73,7 @@ AMO "About this extension" and CWS "Description":
   imported locally, encrypted at rest, and never leave the device.
 - The listed build carries no `update_url`. Self-distribution continues on
   the unlisted channel under the same add-on id with a four-segment version
-  (listed 0.2.0, unlisted 0.2.0.1).
+  (listed 0.2.1, unlisted 0.2.1.1).
 
 ## CWS Single Purpose
 
