@@ -2,6 +2,27 @@
 
 ## 2026-07-28
 
+- operations#53 Phase 3 repo side (AMO listed submission prep) on
+  `feature/store-listings`: version bumped 0.1.3 to 0.2.0 (minor; the
+  listing milestone takes the minor bump, 0.1.3 is consumed on the unlisted
+  channel). New `docs/store-listing.md` holds every console field for both
+  stores: identity, proposed AMO slug `autograph`, summary and full
+  description, categories (Privacy & Security both stores), AMO reviewer
+  notes (plain-npm build, no remote code, no network requests), CWS single
+  purpose, per-permission justifications (`storage`, `clipboardWrite`,
+  content script `<all_urls>`, `web_accessible_resources`), data-use
+  declarations, privacy policy URL, imagery inventory with screenshot shot
+  list. New `assets/store-promo.svg` composes the 440x280 CWS small promo
+  tile from `assets/icon.svg`; new Makefile `tile` target renders it to
+  `assets/store/promo-440x280.png` (committed). Artifacts rebuilt:
+  `dist/autograph-0.2.0-listed.xpi` + sources zip,
+  `.output/autograph-0.2.0-chrome.zip`, unlisted firefox at 0.2.0.1.
+  Verified: lint/test/build green; manifest divergence asserted on built
+  output (listed 0.2.0 no update_url; unlisted 0.2.0.1 with update_url;
+  chrome 0.2.0). Remaining Phase 3 is operator choreography: Developer Hub
+  listed upload + sources zip + listing fields + slug, screenshots, then
+  `make sign` 0.2.0.1 and the admin-page parity release.
+
 - operations#53 Phase 1 (dual-channel build machinery) on
   `feature/store-listings`: `lib/dist.ts` gains Channel type,
   `AUTOGRAPH_CHANNEL` parsing (default unlisted), and `unlistedVersion`

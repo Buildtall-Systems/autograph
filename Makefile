@@ -1,4 +1,4 @@
-.PHONY: help lint fmt test build build-listed dev dev-firefox zip zip-listed sign release icons
+.PHONY: help lint fmt test build build-listed dev dev-firefox zip zip-listed sign release icons tile
 
 NIX := nix develop -c
 BUMP ?= patch
@@ -50,3 +50,7 @@ release: ## version bump + listed zips + builds + chrome zip + unlisted sign (BU
 
 icons: ## rasterize assets/icon.svg to public/icon/{16,32,48,96,128}.png
 	for s in 16 32 48 96 128; do rsvg-convert -w $$s -h $$s assets/icon.svg -o public/icon/$$s.png; done
+
+tile: ## render the 440x280 CWS promo tile from assets/store-promo.svg
+	mkdir -p assets/store
+	rsvg-convert -w 440 -h 280 assets/store-promo.svg -o assets/store/promo-440x280.png
