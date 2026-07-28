@@ -2,6 +2,25 @@
 
 ## 2026-07-28
 
+- operations#53 Phase 4 CWS submission: operator registered the Chrome
+  Web Store developer account and uploaded
+  `.output/autograph-0.2.1-chrome.zip` via "+ New item". Privacy
+  practices completed from docs/store-listing.md: single purpose,
+  justifications for storage, clipboardWrite, and host permissions, "no
+  remote code", empty data-collection matrix with all three
+  certifications, privacy policy URL
+  https://buildtall.systems/autograph/privacy; publisher contact email
+  verified on the Settings page; 440x280 small promo tile attached.
+  Submitted for review, visibility public (the console offered no
+  publish-mode choice at submission; current CWS publishes automatically
+  after review unless deferred publishing is pre-enabled). Awaiting CWS
+  review. Remaining: record the item ID and store URL for Phase 5.
+
+  Also received the AMO auto-approval email for unlisted 0.2.1.1
+  ("automatic validation"); the listed 0.2.1 review is still pending,
+  and the public AMO page still answers 401 via the API, confirming no
+  public listing yet.
+
 - operations#53 Phase 3 parity release: operator ran `make sign` (AMO
   signed the unlisted 0.2.1.1 into `dist/`) and published the signed
   `.xpi` through the /admin/releases page (Blossom upload plus kind
