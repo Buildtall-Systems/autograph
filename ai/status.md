@@ -1,5 +1,25 @@
 # autograph — work log
 
+## 2026-07-28
+
+- operations#53 Phase 1 (dual-channel build machinery) on
+  `feature/store-listings`: `lib/dist.ts` gains Channel type,
+  `AUTOGRAPH_CHANNEL` parsing (default unlisted), and `unlistedVersion`
+  (canonical + fourth segment `.1`, because AMO consumes version numbers per
+  add-on across channels); the vestigial `buildUpdatesManifest`/`xpiUrl` and
+  `scripts/gen-updates.ts` are gone (live updates.json is the monorepo's
+  dynamic handler). `wxt.config.ts` manifest factory is channel-aware:
+  listed firefox build drops `update_url` and keeps the canonical version;
+  unlisted keeps `update_url` and stamps the suffixed version; chrome-mv3
+  untouched. Makefile: `build-listed`, `zip-listed` (listed .xpi + sources
+  zip into dist/), `release` re-choreographed (bump, zip-listed, build, zip,
+  sign), `updates` target deleted. README: three-channel release model,
+  version scheme, plain-npm reviewer build instructions (Node 24). Verified:
+  lint/test/build green; built manifests assert listed (0.1.3, no
+  update_url), unlisted (0.1.3.1 + update_url), chrome (0.1.3, no gecko);
+  listed xpi + sources zip land in dist/ and the sources zip carries the
+  README build instructions.
+
 ## 2026-07-12
 
 - Phase 5 (packaging + self-hosted distribution) implemented, gates green.

@@ -1,36 +1,47 @@
 import { describe, expect, it } from 'vitest';
 import {
-  ADDON_ID,
-  buildUpdatesManifest,
   DIST_BASE_URL,
-  GECKO_STRICT_MIN_VERSION,
+  parseChannel,
+  UNLISTED_VERSION_SEGMENT,
   UPDATES_URL,
-  xpiUrl,
+  unlistedVersion,
 } from './dist';
 
-describe('buildUpdatesManifest', () => {
-  it('keys a single update entry by the addon id', () => {
-    const manifest = buildUpdatesManifest('0.2.0');
-    expect(Object.keys(manifest.addons)).toEqual([ADDON_ID]);
-    expect(manifest.addons[ADDON_ID]?.updates).toHaveLength(1);
+describe('parseChannel', () => {
+  it('defaults to unlisted when the variable is unset or empty', () => {
+    expect(parseChannel(undefined)).toBe('unlisted');
+    expect(parseChannel('')).toBe('unlisted');
   });
 
-  it('carries the version and the versioned xpi link', () => {
-    const entry = buildUpdatesManifest('1.4.7').addons[ADDON_ID]?.updates[0];
-    expect(entry?.version).toBe('1.4.7');
-    expect(entry?.update_link).toBe(`${DIST_BASE_URL}/autograph-1.4.7.xpi`);
+  it('accepts the two channel values', () => {
+    expect(parseChannel('listed')).toBe('listed');
+    expect(parseChannel('unlisted')).toBe('unlisted');
   });
 
-  it('pins gecko strict_min_version', () => {
-    const entry = buildUpdatesManifest('0.2.0').addons[ADDON_ID]?.updates[0];
-    expect(entry?.applications.gecko.strict_min_version).toBe(
-      GECKO_STRICT_MIN_VERSION,
+  it('rejects anything else', () => {
+    expect(() => parseChannel('public')).toThrow(/listed/);
+    expect(() => parseChannel('LISTED')).toThrow(/LISTED/);
+  });
+});
+
+describe('unlistedVersion', () => {
+  it('appends the fourth segment to a canonical version', () => {
+    expect(unlistedVersion('0.2.0')).toBe(`0.2.0.${UNLISTED_VERSION_SEGMENT}`);
+    expect(unlistedVersion('12.34.56')).toBe(
+      `12.34.56.${UNLISTED_VERSION_SEGMENT}`,
     );
   });
 
-  it('serves update_link and updates.json from the same https base', () => {
+  it('rejects versions that are not three-part canonical', () => {
+    expect(() => unlistedVersion('0.2')).toThrow(/three-part/);
+    expect(() => unlistedVersion('0.2.0.1')).toThrow(/three-part/);
+    expect(() => unlistedVersion('0.2.0-alpha1')).toThrow(/three-part/);
+  });
+});
+
+describe('distribution URLs', () => {
+  it('serves updates.json from the https dist base', () => {
     expect(UPDATES_URL).toBe(`${DIST_BASE_URL}/updates.json`);
-    expect(xpiUrl('0.2.0').startsWith('https://')).toBe(true);
     expect(UPDATES_URL.startsWith('https://')).toBe(true);
   });
 });

@@ -41,12 +41,37 @@ Unpacked installs do not auto-update; rebuild and reload to upgrade.
 devShell provides Node). See Development below for temporary loading
 during development.
 
+Without Nix (the path AMO reviewers use against the submitted sources zip),
+Node 24 and npm suffice:
+
+```
+npm ci
+npx wxt build -b firefox   # .output/firefox-mv2/
+npx wxt build              # .output/chrome-mv3/
+```
+
+The build bundles only declared npm dependencies; there is no code
+generation outside WXT and no downloaded or remote code.
+
 ## Release
 
-The add-on's AMO listing (unlisted channel) is managed at
+autograph distributes through three channels from one codebase:
+
+- **AMO listed**: the public addons.mozilla.org listing. Carries the
+  canonical three-part version and no `update_url` (Firefox updates
+  AMO-hosted add-ons from AMO itself). Built with `make build-listed`,
+  packaged with `make zip-listed`.
+- **AMO unlisted**: the self-hosted `.xpi` behind
+  `https://buildtall.systems/autograph/updates.json`. Carries the canonical
+  version with a fourth segment appended (listed `0.2.0`, unlisted
+  `0.2.0.1`), because AMO consumes version numbers per add-on across both
+  channels. This is the default channel for `make build` and `make sign`.
+- **Chrome Web Store**: the chrome-mv3 zip at the canonical version.
+
+The add-on's channels are managed at
 <https://addons.mozilla.org/en-US/developers/addon/bd20a5d1f1544cc2b922/versions>
-— signing status, submitted versions, and signed-file downloads live there
-(AMO slug `bd20a5d1f1544cc2b922`, addon id `autograph@buildtall.systems`).
+(signing status, submitted versions, signed-file downloads; addon id
+`autograph@buildtall.systems`).
 
 ### Credentials
 
@@ -66,9 +91,14 @@ never touch the repo or the shell environment.
 
 ### Signing
 
-`make release` bumps the version (`BUMP=patch|minor|major`, default patch),
-builds and zips both targets, and submits the Firefox build for AMO
-unlisted signing. AMO returns the signed `.xpi` into `dist/`.
+`make release` bumps the canonical version (`BUMP=patch|minor|major`,
+default patch), packages the listed artifacts into `dist/`
+(`autograph-<version>-listed.xpi` plus the sources zip for AMO source-code
+review), rebuilds both targets on the unlisted channel, zips the Chromium
+target for the Chrome Web Store, and submits the unlisted Firefox build for
+AMO signing. AMO returns the signed self-hosted `.xpi` into `dist/`. The
+listed `.xpi` and the chrome zip are uploaded manually to their consoles;
+only the unlisted channel is signed from the command line.
 
 ### Publication
 
