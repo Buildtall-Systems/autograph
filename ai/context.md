@@ -14,6 +14,9 @@ autograph's dependencies to those entries.
 | nostr-tools           | /nbd-wtf/nostr-tools | ai/context/nostr-tools/          |
 | wxt                   | /wxt-dev/wxt       |                                    |
 | webextension-polyfill | /mozilla/webextension-polyfill |                        |
+| web-ext               | /mozilla/web-ext   |                                    |
+| extension-workshop    | /websites/extensionworkshop |                           |
+| chrome-extensions     | /websites/developer_chrome_extensions |                 |
 
 Notes:
 - **nos2x-fox** is the functional reference only; UI look and feel is NOT
