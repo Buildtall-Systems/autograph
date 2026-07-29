@@ -17,6 +17,7 @@ autograph's dependencies to those entries.
 | web-ext               | /mozilla/web-ext   |                                    |
 | extension-workshop    | /websites/extensionworkshop |                           |
 | chrome-extensions     | /websites/developer_chrome_extensions |                 |
+| tailwindcss           | /websites/tailwindcss |                                 |
 
 Notes:
 - **nos2x-fox** is the functional reference only; UI look and feel is NOT

@@ -4,11 +4,17 @@ import { initTheme } from '@/components/theme';
 import { UI_TAG, sendUiMessage } from '@/lib/ui-messages';
 import { vaultExists } from '@/lib/vault';
 
+// Coarse-pointer variants enlarge tap targets to the 44px guideline on
+// touchscreens; desktop rendering is untouched. The passphrase field is sized
+// for a mobile keyboard, which covers much of the viewport while typing.
 const BUTTON =
-  'rounded bg-primary px-3 py-1.5 text-sm font-medium text-primary-fg hover:bg-primary-hover';
+  'rounded bg-primary px-3 py-1.5 text-sm font-medium text-primary-fg hover:bg-primary-hover ' +
+  'pointer-coarse:px-4 pointer-coarse:py-2.5 pointer-coarse:text-base';
 const INPUT =
-  'mt-1 w-full rounded border border-fg-muted bg-bg-muted px-2 py-1.5 text-sm text-fg';
-const LABEL = 'mt-3 block text-sm text-fg-subtle';
+  'mt-1 w-full rounded border border-fg-muted bg-bg-muted px-2 py-1.5 text-sm text-fg ' +
+  'pointer-coarse:px-3 pointer-coarse:py-2.5 pointer-coarse:text-base';
+const LABEL =
+  'mt-3 block text-sm text-fg-subtle pointer-coarse:mt-4 pointer-coarse:text-base';
 
 function passphraseField(labelText: string): {
   label: HTMLLabelElement;

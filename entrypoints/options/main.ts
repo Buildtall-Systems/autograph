@@ -49,15 +49,25 @@ import {
   vaultExists,
 } from '@/lib/vault';
 
+// Coarse-pointer variants enlarge tap targets to the 44px guideline on
+// touchscreens; desktop rendering is untouched. INPUT carries the full-width
+// rule so every fixed-width field below (w-20 through w-72) relaxes on a
+// phone, where a w-72 font-mono key field would otherwise overflow.
 const BUTTON =
-  'rounded bg-bg-elevated px-2 py-1 text-sm font-medium text-fg hover:bg-bg-highlight';
+  'rounded bg-bg-elevated px-2 py-1 text-sm font-medium text-fg hover:bg-bg-highlight ' +
+  'pointer-coarse:px-4 pointer-coarse:py-2.5 pointer-coarse:text-base';
 const PRIMARY_BUTTON =
-  'rounded bg-primary px-3 py-1.5 text-sm font-medium text-primary-fg hover:bg-primary-hover';
+  'rounded bg-primary px-3 py-1.5 text-sm font-medium text-primary-fg hover:bg-primary-hover ' +
+  'pointer-coarse:px-4 pointer-coarse:py-2.5 pointer-coarse:text-base';
 const DANGER_BUTTON =
-  'rounded bg-error-bg px-2 py-1 text-sm font-medium text-error hover:text-error-hover';
-const LINK_BUTTON = 'text-sm text-primary hover:text-primary-hover';
+  'rounded bg-error-bg px-2 py-1 text-sm font-medium text-error hover:text-error-hover ' +
+  'pointer-coarse:px-4 pointer-coarse:py-2.5 pointer-coarse:text-base';
+const LINK_BUTTON =
+  'text-sm text-primary hover:text-primary-hover ' +
+  'pointer-coarse:inline-block pointer-coarse:py-2.5 pointer-coarse:text-base';
 const INPUT =
-  'rounded border border-fg-muted bg-bg-muted px-2 py-1 text-sm text-fg';
+  'rounded border border-fg-muted bg-bg-muted px-2 py-1 text-sm text-fg ' +
+  'pointer-coarse:w-full pointer-coarse:px-3 pointer-coarse:py-2.5 pointer-coarse:text-base';
 const SECTION = 'mt-6 rounded-lg bg-bg-subtle p-4';
 const HEADING = 'text-base font-semibold text-primary';
 const SUBHEADING = 'mt-4 text-sm font-semibold text-fg';
@@ -112,6 +122,7 @@ function themeSection(): HTMLElement {
   void getStoredTheme().then((current) => {
     for (const theme of THEMES) {
       const radio = el('input', {
+        className: 'pointer-coarse:size-5',
         attrs: { type: 'radio', name: 'theme', value: theme },
       });
       radio.checked = theme === current;
@@ -119,10 +130,14 @@ function themeSection(): HTMLElement {
         void setStoredTheme(theme);
       });
       row.append(
-        el('label', { className: 'flex items-center gap-2 text-sm text-fg' }, [
-          radio,
-          theme,
-        ]),
+        el(
+          'label',
+          {
+            className:
+              'flex items-center gap-2 text-sm text-fg pointer-coarse:gap-3 pointer-coarse:text-base',
+          },
+          [radio, theme],
+        ),
       );
     }
   });
@@ -207,6 +222,7 @@ function vaultSection(state: {
   }
   autolockInput.disabled = never;
   const neverCheckbox = el('input', {
+    className: 'pointer-coarse:size-5',
     attrs: { type: 'checkbox', 'aria-label': 'never auto-lock' },
   });
   neverCheckbox.checked = never;
@@ -215,34 +231,44 @@ function vaultSection(state: {
   });
   section.append(
     el('h3', { className: SUBHEADING, text: 'Auto-lock timeout (minutes)' }),
-    el('div', { className: 'mt-2 flex items-center gap-2' }, [
-      autolockInput,
-      el(
-        'label',
-        { className: 'flex items-center gap-1 text-sm text-fg-subtle' },
-        [neverCheckbox, 'Never'],
-      ),
-      el('button', {
-        className: BUTTON,
-        text: 'Save',
-        attrs: { type: 'button' },
-        onClick: () => {
-          autolockError.clear();
-          if (neverCheckbox.checked) {
-            void setAutolockSeconds(null).catch((error: unknown) => {
-              autolockError.show(asMessage(error));
-            });
-            return;
-          }
-          const minutes = Number.parseInt(autolockInput.value, 10);
-          void setAutolockSeconds(minutes * SECONDS_PER_MINUTE).catch(
-            (error: unknown) => {
-              autolockError.show(asMessage(error));
-            },
-          );
-        },
-      }),
-    ]),
+    el(
+      'div',
+      {
+        className:
+          'mt-2 flex items-center gap-2 pointer-coarse:flex-wrap pointer-coarse:gap-3',
+      },
+      [
+        autolockInput,
+        el(
+          'label',
+          {
+            className:
+              'flex items-center gap-1 text-sm text-fg-subtle pointer-coarse:gap-2 pointer-coarse:text-base',
+          },
+          [neverCheckbox, 'Never'],
+        ),
+        el('button', {
+          className: BUTTON,
+          text: 'Save',
+          attrs: { type: 'button' },
+          onClick: () => {
+            autolockError.clear();
+            if (neverCheckbox.checked) {
+              void setAutolockSeconds(null).catch((error: unknown) => {
+                autolockError.show(asMessage(error));
+              });
+              return;
+            }
+            const minutes = Number.parseInt(autolockInput.value, 10);
+            void setAutolockSeconds(minutes * SECONDS_PER_MINUTE).catch(
+              (error: unknown) => {
+                autolockError.show(asMessage(error));
+              },
+            );
+          },
+        }),
+      ],
+    ),
     el('p', {
       className: 'mt-1 text-xs text-fg-subtle',
       text: '"Never" keeps the vault unlocked until the browser closes or you lock it manually.',
@@ -263,40 +289,46 @@ function vaultSection(state: {
     className: `${INPUT} mt-1 w-full`,
     attrs: { type: 'password', autocomplete: 'off' },
   });
-  const changeForm = el('form', { className: 'mt-2 max-w-sm' }, [
-    el(
-      'label',
-      {
-        className: 'block text-sm text-fg-subtle',
-        text: 'Current passphrase',
-      },
-      [currentInput],
-    ),
-    el(
-      'label',
-      {
-        className: 'mt-2 block text-sm text-fg-subtle',
-        text: 'New passphrase',
-      },
-      [nextInput],
-    ),
-    el(
-      'label',
-      {
-        className: 'mt-2 block text-sm text-fg-subtle',
-        text: 'Confirm new passphrase',
-      },
-      [confirmInput],
-    ),
-    el('div', { className: 'mt-3' }, [
-      el('button', {
-        className: PRIMARY_BUTTON,
-        text: 'Change passphrase',
-        attrs: { type: 'submit' },
-      }),
-    ]),
-    changeError.node,
-  ]);
+  const changeForm = el(
+    'form',
+    {
+      className: 'mt-2 max-w-sm pointer-coarse:max-w-none',
+    },
+    [
+      el(
+        'label',
+        {
+          className: 'block text-sm text-fg-subtle',
+          text: 'Current passphrase',
+        },
+        [currentInput],
+      ),
+      el(
+        'label',
+        {
+          className: 'mt-2 block text-sm text-fg-subtle',
+          text: 'New passphrase',
+        },
+        [nextInput],
+      ),
+      el(
+        'label',
+        {
+          className: 'mt-2 block text-sm text-fg-subtle',
+          text: 'Confirm new passphrase',
+        },
+        [confirmInput],
+      ),
+      el('div', { className: 'mt-3' }, [
+        el('button', {
+          className: PRIMARY_BUTTON,
+          text: 'Change passphrase',
+          attrs: { type: 'submit' },
+        }),
+      ]),
+      changeError.node,
+    ],
+  );
   changeForm.addEventListener('submit', (event) => {
     event.preventDefault();
     changeError.clear();
@@ -413,23 +445,30 @@ function relayEditor(pubkey: string, profile: Profile): HTMLElement {
     attrs: { type: 'text', placeholder: 'wss://relay.example/' },
   });
   container.append(
-    el('div', { className: 'mt-2 flex items-center gap-2' }, [
-      addInput,
-      el('button', {
-        className: BUTTON,
-        text: 'Add relay',
-        attrs: { type: 'button' },
-        onClick: () => {
-          saveRelays((relays) => ({
-            ...relays,
-            [validateRelayUrl(addInput.value.trim())]: {
-              read: true,
-              write: true,
-            },
-          }));
-        },
-      }),
-    ]),
+    el(
+      'div',
+      {
+        className:
+          'mt-2 flex items-center gap-2 pointer-coarse:flex-wrap pointer-coarse:gap-3',
+      },
+      [
+        addInput,
+        el('button', {
+          className: BUTTON,
+          text: 'Add relay',
+          attrs: { type: 'button' },
+          onClick: () => {
+            saveRelays((relays) => ({
+              ...relays,
+              [validateRelayUrl(addInput.value.trim())]: {
+                read: true,
+                write: true,
+              },
+            }));
+          },
+        }),
+      ],
+    ),
     error.node,
   );
   return container;
@@ -490,64 +529,77 @@ function profileCard(
   });
   nameInput.value = profile.name;
 
-  const header = el('div', { className: 'flex flex-wrap items-center gap-2' }, [
-    nameInput,
-    el('button', {
-      className: BUTTON,
-      text: 'Rename',
-      attrs: { type: 'button' },
-      onClick: () => {
-        error.clear();
-        if (nameInput.value.trim() === '') {
-          error.show('profile name must not be empty');
-          return;
-        }
-        void renameProfile(pubkey, nameInput.value.trim()).catch(
-          (renameError: unknown) => {
-            error.show(asMessage(renameError));
-          },
-        );
-      },
-    }),
-    isActive
-      ? el('span', { className: 'text-sm text-accent', text: 'active' })
-      : el('button', {
-          className: BUTTON,
-          text: 'Make active',
-          attrs: { type: 'button' },
-          onClick: () => {
-            void setActivePubkey(pubkey).catch((activeError: unknown) => {
-              console.error('autograph: profile switch failed', activeError);
-            });
-          },
-        }),
-    el('button', {
-      className: DANGER_BUTTON,
-      text: 'Delete',
-      attrs: { type: 'button' },
-      onClick: () => {
-        if (
-          !window.confirm(
-            `Delete profile "${profile.name}" (${truncateMiddle(npub)})? The key is unrecoverable unless exported.`,
-          )
-        ) {
-          return;
-        }
-        void deleteProfile(pubkey).catch((deleteError: unknown) => {
-          error.show(asMessage(deleteError));
-        });
-      },
-    }),
-  ]);
+  const header = el(
+    'div',
+    {
+      className: 'flex flex-wrap items-center gap-2 pointer-coarse:gap-3',
+    },
+    [
+      nameInput,
+      el('button', {
+        className: BUTTON,
+        text: 'Rename',
+        attrs: { type: 'button' },
+        onClick: () => {
+          error.clear();
+          if (nameInput.value.trim() === '') {
+            error.show('profile name must not be empty');
+            return;
+          }
+          void renameProfile(pubkey, nameInput.value.trim()).catch(
+            (renameError: unknown) => {
+              error.show(asMessage(renameError));
+            },
+          );
+        },
+      }),
+      isActive
+        ? el('span', { className: 'text-sm text-accent', text: 'active' })
+        : el('button', {
+            className: BUTTON,
+            text: 'Make active',
+            attrs: { type: 'button' },
+            onClick: () => {
+              void setActivePubkey(pubkey).catch((activeError: unknown) => {
+                console.error('autograph: profile switch failed', activeError);
+              });
+            },
+          }),
+      el('button', {
+        className: DANGER_BUTTON,
+        text: 'Delete',
+        attrs: { type: 'button' },
+        onClick: () => {
+          if (
+            !window.confirm(
+              `Delete profile "${profile.name}" (${truncateMiddle(npub)})? The key is unrecoverable unless exported.`,
+            )
+          ) {
+            return;
+          }
+          void deleteProfile(pubkey).catch((deleteError: unknown) => {
+            error.show(asMessage(deleteError));
+          });
+        },
+      }),
+    ],
+  );
 
-  const npubRow = el('p', { className: 'mt-2 flex items-center gap-2' }, [
-    el('span', {
-      className: 'font-mono text-xs text-fg-subtle',
-      text: truncateMiddle(npub),
-      attrs: { title: npub },
-    }),
-    copyButton(npub),
-  ]);
+  const npubRow = el(
+    'p',
+    {
+      className:
+        'mt-2 flex items-center gap-2 pointer-coarse:flex-wrap pointer-coarse:gap-3',
+    },
+    [
+      el('span', {
+        className: 'font-mono text-xs text-fg-subtle',
+        text: truncateMiddle(npub),
+        attrs: { title: npub },
+      }),
+      copyButton(npub),
+    ],
+  );
 
   const nsecRow = el('div', { className: 'mt-2' });
   const revealButton = el('button', {
@@ -568,17 +620,24 @@ function profileCard(
         });
         nsecInput.value = nsec;
         nsecRow.replaceChildren(
-          el('div', { className: 'flex items-center gap-2' }, [
-            nsecInput,
-            el('button', {
-              className: BUTTON,
-              text: 'Hide',
-              attrs: { type: 'button' },
-              onClick: () => {
-                nsecRow.replaceChildren(revealButton);
-              },
-            }),
-          ]),
+          el(
+            'div',
+            {
+              className:
+                'flex items-center gap-2 pointer-coarse:flex-wrap pointer-coarse:gap-3',
+            },
+            [
+              nsecInput,
+              el('button', {
+                className: BUTTON,
+                text: 'Hide',
+                attrs: { type: 'button' },
+                onClick: () => {
+                  nsecRow.replaceChildren(revealButton);
+                },
+              }),
+            ],
+          ),
         );
       })
       .catch((revealError: unknown) => {
@@ -618,28 +677,35 @@ function addProfileForms(unlocked: boolean): HTMLElement {
     attrs: { type: 'text', placeholder: 'profile name' },
   });
   container.append(
-    el('div', { className: 'mt-2 flex items-center gap-2' }, [
-      generateName,
-      el('button', {
-        className: PRIMARY_BUTTON,
-        text: 'Generate new key',
-        attrs: { type: 'button' },
-        onClick: () => {
-          error.clear();
-          const name = generateName.value.trim();
-          if (name === '') {
-            error.show('profile name must not be empty');
-            return;
-          }
-          const { secretKey, pubkey } = generateProfileKey();
-          void withSecretKey(secretKey, (sk) => encryptSecret(sk))
-            .then((encryptedKey) => addProfile(pubkey, name, encryptedKey))
-            .catch((generateError: unknown) => {
-              error.show(asMessage(generateError));
-            });
-        },
-      }),
-    ]),
+    el(
+      'div',
+      {
+        className:
+          'mt-2 flex items-center gap-2 pointer-coarse:flex-wrap pointer-coarse:gap-3',
+      },
+      [
+        generateName,
+        el('button', {
+          className: PRIMARY_BUTTON,
+          text: 'Generate new key',
+          attrs: { type: 'button' },
+          onClick: () => {
+            error.clear();
+            const name = generateName.value.trim();
+            if (name === '') {
+              error.show('profile name must not be empty');
+              return;
+            }
+            const { secretKey, pubkey } = generateProfileKey();
+            void withSecretKey(secretKey, (sk) => encryptSecret(sk))
+              .then((encryptedKey) => addProfile(pubkey, name, encryptedKey))
+              .catch((generateError: unknown) => {
+                error.show(asMessage(generateError));
+              });
+          },
+        }),
+      ],
+    ),
   );
 
   const importName = el('input', {
@@ -651,37 +717,44 @@ function addProfileForms(unlocked: boolean): HTMLElement {
     attrs: { type: 'password', placeholder: 'nsec1… or 64-char hex' },
   });
   container.append(
-    el('div', { className: 'mt-2 flex flex-wrap items-center gap-2' }, [
-      importName,
-      importSecret,
-      el('button', {
-        className: PRIMARY_BUTTON,
-        text: 'Import key',
-        attrs: { type: 'button' },
-        onClick: () => {
-          error.clear();
-          const name = importName.value.trim();
-          if (name === '') {
-            error.show('profile name must not be empty');
-            return;
-          }
-          try {
-            const secretKey = parseSecretKeyInput(importSecret.value);
-            const pubkey = derivePubkey(secretKey);
-            void withSecretKey(secretKey, (sk) => encryptSecret(sk))
-              .then(async (encryptedKey) => {
-                await addProfile(pubkey, name, encryptedKey);
-                importSecret.value = '';
-              })
-              .catch((importError: unknown) => {
-                error.show(asMessage(importError));
-              });
-          } catch (parseError) {
-            error.show(asMessage(parseError));
-          }
-        },
-      }),
-    ]),
+    el(
+      'div',
+      {
+        className:
+          'mt-2 flex flex-wrap items-center gap-2 pointer-coarse:gap-3',
+      },
+      [
+        importName,
+        importSecret,
+        el('button', {
+          className: PRIMARY_BUTTON,
+          text: 'Import key',
+          attrs: { type: 'button' },
+          onClick: () => {
+            error.clear();
+            const name = importName.value.trim();
+            if (name === '') {
+              error.show('profile name must not be empty');
+              return;
+            }
+            try {
+              const secretKey = parseSecretKeyInput(importSecret.value);
+              const pubkey = derivePubkey(secretKey);
+              void withSecretKey(secretKey, (sk) => encryptSecret(sk))
+                .then(async (encryptedKey) => {
+                  await addProfile(pubkey, name, encryptedKey);
+                  importSecret.value = '';
+                })
+                .catch((importError: unknown) => {
+                  error.show(asMessage(importError));
+                });
+            } catch (parseError) {
+              error.show(asMessage(parseError));
+            }
+          },
+        }),
+      ],
+    ),
     error.node,
   );
   return container;

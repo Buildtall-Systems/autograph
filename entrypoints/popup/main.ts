@@ -8,9 +8,15 @@ import { HOMEPAGE_URL } from '@/lib/dist';
 import { UI_TAG, sendUiMessage } from '@/lib/ui-messages';
 import { isUnlocked, vaultExists } from '@/lib/vault';
 
+// Coarse-pointer variants enlarge tap targets to the 44px guideline on
+// touchscreens. They key off input accuracy rather than viewport width, so the
+// desktop popup, whose panel is narrower than any breakpoint, is unaffected.
 const BUTTON =
-  'rounded bg-bg-elevated px-2 py-1 text-sm font-medium text-fg hover:bg-bg-highlight';
-const LINK_BUTTON = 'text-sm text-primary hover:text-primary-hover';
+  'rounded bg-bg-elevated px-2 py-1 text-sm font-medium text-fg hover:bg-bg-highlight ' +
+  'pointer-coarse:px-4 pointer-coarse:py-2.5 pointer-coarse:text-base';
+const LINK_BUTTON =
+  'text-sm text-primary hover:text-primary-hover ' +
+  'pointer-coarse:inline-block pointer-coarse:py-2.5 pointer-coarse:text-base';
 
 function openUnlockPage(): void {
   void browser.tabs.create({ url: browser.runtime.getURL('/unlock.html') });
@@ -103,13 +109,19 @@ async function render(): Promise<void> {
   ]);
 
   clearChildren(app);
-  const page = el('main', { className: 'min-w-80 bg-bg p-4 text-fg' }, [
-    el('h1', {
-      className: 'text-lg font-bold text-primary',
-      text: 'autograph',
-    }),
-    vaultSection(exists, unlocked),
-  ]);
+  const page = el(
+    'main',
+    {
+      className: 'min-w-80 bg-bg p-4 text-fg pointer-coarse:w-full',
+    },
+    [
+      el('h1', {
+        className: 'text-lg font-bold text-primary',
+        text: 'autograph',
+      }),
+      vaultSection(exists, unlocked),
+    ],
+  );
 
   const active = activePubkey === null ? undefined : profiles[activePubkey];
   if (activePubkey !== null && active !== undefined) {
@@ -143,7 +155,8 @@ async function render(): Promise<void> {
   if (pubkeys.length > 1) {
     const select = el('select', {
       className:
-        'mt-1 w-full rounded border border-fg-muted bg-bg-muted px-2 py-1 text-sm text-fg',
+        'mt-1 w-full rounded border border-fg-muted bg-bg-muted px-2 py-1 text-sm text-fg ' +
+        'pointer-coarse:px-3 pointer-coarse:py-2.5 pointer-coarse:text-base',
       attrs: { 'aria-label': 'active profile' },
     });
     for (const pubkey of pubkeys) {

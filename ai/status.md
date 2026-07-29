@@ -2,6 +2,42 @@
 
 ## 2026-07-29
 
+- Firefox for Android Phase 3 (mobile UI pass across popup, prompt,
+  unlock, and options). The plan left the variant strategy to the
+  implementer. Chose `pointer-coarse` over mobile-first sizing with a
+  desktop breakpoint override, because breakpoint variants key off
+  viewport width and the desktop popup panel is `min-w-80`, or 320px,
+  against a `sm:` breakpoint of 640px. Under the breakpoint strategy the
+  override would never fire in the popup and desktop Firefox would render
+  the enlarged treatment permanently. `pointer-coarse` keys off pointer
+  accuracy instead, so the desktop popup is untouched.
+- Coarse targets are sized to the 44px guideline exactly: `py-2.5` gives
+  20px of padding around a `text-base` 24px line box. Buttons take
+  `px-4 py-2.5 text-base`, inputs `px-3 py-2.5 text-base`, link buttons
+  add `inline-block` so vertical padding occupies space on anchors.
+- `INPUT` in `entrypoints/options/main.ts` and
+  `entrypoints/prompt/main.ts` carries `pointer-coarse:w-full`, so all
+  seven fixed-width fields (`w-20` through `w-72`) relax on a phone from
+  one place rather than seven. Every `INPUT` usage either already sets
+  `w-full` or sets a fixed width that should relax, so the constant is the
+  correct home for the rule. Rows holding a now-full-width input gain
+  `pointer-coarse:flex-wrap`; the change-passphrase form drops `max-w-sm`
+  via `pointer-coarse:max-w-none`; theme radios and the never-autolock
+  checkbox gain `pointer-coarse:size-5`.
+- `assets/css/main.css` is untouched. Every change is a class string in an
+  entrypoint, as the plan required.
+- Verification: `make lint`, `make test`, `make build` all pass. Confirmed
+  the variant actually compiles rather than being silently dropped: the
+  built CSS carries an `@media (pointer:coarse)` block with all twelve
+  utilities, at byte offset 10057, after every base utility it overrides
+  (`w-20`/`w-48`/`w-72` near 7100, `px-2` at 8361, `text-sm` at 8768), so
+  the cascade resolves in its favour. A token-level diff of all four
+  entrypoints against HEAD shows every added class is `pointer-coarse:`
+  prefixed and nothing was removed, so desktop rendering is unchanged by
+  construction. Desktop spot-check remains an operator step.
+- `tailwindcss` registered in `ai/context.md` as `/websites/tailwindcss`;
+  it had no row despite being a direct dependency.
+
 - Firefox for Android Phase 2 (manifest declaration and toolchain
   targets). `wxt.config.ts` now emits `gecko_android` inside
   `browser_specific_settings` for the firefox build, with

@@ -10,12 +10,18 @@ import {
 } from '@/lib/prompts';
 import { UI_TAG, sendUiMessage } from '@/lib/ui-messages';
 
+// Coarse-pointer variants enlarge tap targets to the 44px guideline on
+// touchscreens; desktop rendering is untouched. Mis-taps here grant or deny
+// capabilities, so the grant and deny targets are separated as well as sized.
 const GRANT_BUTTON =
-  'rounded bg-bg-elevated px-2 py-1 text-sm font-medium text-fg hover:bg-bg-highlight';
+  'rounded bg-bg-elevated px-2 py-1 text-sm font-medium text-fg hover:bg-bg-highlight ' +
+  'pointer-coarse:px-4 pointer-coarse:py-2.5 pointer-coarse:text-base';
 const DENY_BUTTON =
-  'rounded bg-error-bg px-2 py-1 text-sm font-medium text-error hover:text-error-hover';
+  'rounded bg-error-bg px-2 py-1 text-sm font-medium text-error hover:text-error-hover ' +
+  'pointer-coarse:px-4 pointer-coarse:py-2.5 pointer-coarse:text-base';
 const INPUT =
-  'rounded border border-fg-muted bg-bg-muted px-2 py-1 text-sm text-fg';
+  'rounded border border-fg-muted bg-bg-muted px-2 py-1 text-sm text-fg ' +
+  'pointer-coarse:w-full pointer-coarse:px-3 pointer-coarse:py-2.5 pointer-coarse:text-base';
 
 const CONDITION_CHOICES: { label: string; condition: GrantCondition }[] = [
   { label: 'Once', condition: 'single' },
@@ -74,7 +80,9 @@ function promptCard(prompt: QueuedPrompt): HTMLElement {
     );
   }
 
-  const buttons = el('div', { className: 'mt-3 flex flex-wrap gap-2' });
+  const buttons = el('div', {
+    className: 'mt-3 flex flex-wrap gap-2 pointer-coarse:gap-3',
+  });
   for (const choice of CONDITION_CHOICES) {
     buttons.append(
       el('button', {
@@ -96,33 +104,40 @@ function promptCard(prompt: QueuedPrompt): HTMLElement {
       'aria-label': 'custom duration',
     },
   });
-  const customRow = el('div', { className: 'mt-2 flex items-center gap-2' }, [
-    customInput,
-    el('button', {
-      className: GRANT_BUTTON,
-      text: 'Grant custom',
-      attrs: { type: 'button' },
-      onClick: () => {
-        try {
-          respond('expirable_custom', parseDurationInput(customInput.value));
-        } catch (parseError) {
-          showError(
-            parseError instanceof Error
-              ? parseError.message
-              : String(parseError),
-          );
-        }
-      },
-    }),
-    el('button', {
-      className: DENY_BUTTON,
-      text: 'Deny',
-      attrs: { type: 'button' },
-      onClick: () => {
-        respond('no');
-      },
-    }),
-  ]);
+  const customRow = el(
+    'div',
+    {
+      className:
+        'mt-2 flex items-center gap-2 pointer-coarse:flex-wrap pointer-coarse:gap-3',
+    },
+    [
+      customInput,
+      el('button', {
+        className: GRANT_BUTTON,
+        text: 'Grant custom',
+        attrs: { type: 'button' },
+        onClick: () => {
+          try {
+            respond('expirable_custom', parseDurationInput(customInput.value));
+          } catch (parseError) {
+            showError(
+              parseError instanceof Error
+                ? parseError.message
+                : String(parseError),
+            );
+          }
+        },
+      }),
+      el('button', {
+        className: DENY_BUTTON,
+        text: 'Deny',
+        attrs: { type: 'button' },
+        onClick: () => {
+          respond('no');
+        },
+      }),
+    ],
+  );
 
   card.append(buttons, customRow, error);
   return card;
