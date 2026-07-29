@@ -1,7 +1,10 @@
-.PHONY: help lint fmt test build build-listed dev dev-firefox zip zip-listed sign release icons tile
+.PHONY: help lint lint-android fmt test build build-listed dev dev-firefox dev-android zip zip-listed sign release icons tile
 
 NIX := nix develop -c
 BUMP ?= patch
+# Empty selects the sole connected adb device, which is the usual case.
+ANDROID_DEVICE ?=
+ANDROID_DEVICE_FLAG = $(if $(ANDROID_DEVICE),--adb-device $(ANDROID_DEVICE))
 VERSION = $(shell $(NIX) node -p "require('./package.json').version")
 
 help: ## list targets
@@ -11,6 +14,9 @@ lint: ## eslint + prettier check + typecheck
 	$(NIX) npm run lint
 	$(NIX) npm run fmt:check
 	$(NIX) npm run compile
+
+lint-android: build-listed ## addons-linter check of the AMO-bound build, Android keys included
+	$(NIX) npx web-ext lint --source-dir .output/firefox-mv2
 
 fmt: ## format with prettier
 	$(NIX) npm run fmt
@@ -30,6 +36,9 @@ dev: ## dev mode, chromium
 
 dev-firefox: ## dev mode, firefox
 	$(NIX) npm run dev:firefox
+
+dev-android: build ## run the firefox build on Android over adb (ANDROID_DEVICE=<id>)
+	$(NIX) npx web-ext run --target=firefox-android --source-dir .output/firefox-mv2 $(ANDROID_DEVICE_FLAG)
 
 zip: ## package both targets
 	$(NIX) npm run zip

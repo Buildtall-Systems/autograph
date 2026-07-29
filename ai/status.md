@@ -2,6 +2,39 @@
 
 ## 2026-07-29
 
+- Firefox for Android Phase 2 (manifest declaration and toolchain
+  targets). `wxt.config.ts` now emits `gecko_android` inside
+  `browser_specific_settings` for the firefox build, with
+  `strict_min_version` taken from the same `GECKO_STRICT_MIN_VERSION`
+  constant that feeds the desktop `gecko` block, so one floor of `128.0`
+  covers both. The chrome build still carries no
+  `browser_specific_settings`. Verified in the built artifacts, not only
+  in the config.
+- `flake.nix` devShell gains `android-tools` for `adb`, resolved at
+  `android-tools-36.0.1`, reporting Android Debug Bridge 1.0.41. The
+  emulator and system image stay in the `buildtall-android` devShell and
+  are not duplicated here. AVDs are user-level under `~/.android/avd`,
+  so `make emu` in that project serves this one.
+- Makefile gains `lint-android` and `dev-android`, both registered in
+  `.PHONY` and discoverable from `help`. `dev-android` runs
+  `web-ext run --target=firefox-android` against `.output/firefox-mv2`
+  and accepts `ANDROID_DEVICE=<adb id>`, defaulting to the sole
+  connected device.
+- `lint-android` depends on `build-listed` rather than `build`. The
+  self-hosted build carries `update_url`, which addons-linter rejects
+  with `MANIFEST_UPDATE_URL` for Mozilla-hosted add-ons. Linting the
+  AMO-bound artifact needs no flags and validates what AMO validates.
+- Open finding, out of scope for this plan:
+  `MISSING_DATA_COLLECTION_PERMISSIONS`. Firefox requires
+  `browser_specific_settings.gecko.data_collection_permissions` for new
+  extensions since 2025-11-03 and will require it for new versions of
+  existing extensions. It is a warning today, so `lint-android` exits
+  zero, and WXT raises the same warning at build time. It needs a
+  decision before the next listed submission.
+- Verification: `make lint`, `make test`, `make build`, and
+  `make lint-android` all pass. `lint-android` reports zero errors and
+  zero notices.
+
 - Firefox for Android Phase 1 (surface abstraction) on
   `feature/firefox-android`, worktree `projects/autograph-android`. The
   prompt and unlock pages now open through a kind-tagged surface handle:

@@ -16,6 +16,10 @@
           buildInputs = with pkgs; [
             nodejs
             secretspec
+            # adb only, for web-ext run --target=firefox-android against an
+            # emulator or device. The emulator itself comes from the
+            # buildtall-android devShell.
+            android-tools
           ];
 
           shellHook = ''

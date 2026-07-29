@@ -49,6 +49,11 @@ export default defineConfig({
                 strict_min_version: GECKO_STRICT_MIN_VERSION,
                 ...(channel === 'unlisted' ? { update_url: UPDATES_URL } : {}),
               },
+              // Presence of this key is what makes AMO list the extension for
+              // Firefox for Android. The floor is the one shared constant.
+              gecko_android: {
+                strict_min_version: GECKO_STRICT_MIN_VERSION,
+              },
             },
           }
         : {}),
