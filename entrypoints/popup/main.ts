@@ -17,6 +17,21 @@ function openUnlockPage(): void {
   window.close();
 }
 
+// openOptionsPage is absent or unreliable on Firefox for Android; the options
+// page already declares open_in_tab, so a tab is the same destination.
+async function openOptionsPage(): Promise<void> {
+  const runtime: { openOptionsPage?: unknown } = browser.runtime;
+  if (runtime.openOptionsPage !== undefined) {
+    try {
+      await browser.runtime.openOptionsPage();
+      return;
+    } catch (error) {
+      console.warn('autograph: openOptionsPage failed', error);
+    }
+  }
+  await browser.tabs.create({ url: browser.runtime.getURL('/options.html') });
+}
+
 function vaultSection(exists: boolean, unlocked: boolean): HTMLElement {
   const section = el('section', {
     className: 'mt-3 flex items-center justify-between',
@@ -164,8 +179,9 @@ async function render(): Promise<void> {
         text: 'Options',
         attrs: { type: 'button' },
         onClick: () => {
-          void browser.runtime.openOptionsPage();
-          window.close();
+          void openOptionsPage().finally(() => {
+            window.close();
+          });
         },
       }),
       el('a', {

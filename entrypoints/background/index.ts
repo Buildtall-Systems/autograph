@@ -22,6 +22,7 @@ import {
   writeUnlockRequest,
   type QueuedPrompt,
   type SignEventDetail,
+  type SurfaceHandle,
 } from '@/lib/prompts';
 import {
   isBackgroundRequest,
@@ -155,7 +156,7 @@ interface PendingApproval {
 
 const pendingApprovals = new Map<string, PendingApproval>();
 const approvalsByDedupKey = new Map<string, Promise<boolean>>();
-let promptWindow: Promise<number | null> | null = null;
+let promptSurface: Promise<SurfaceHandle | null> | null = null;
 let queueLock: Promise<void> = Promise.resolve();
 
 function withQueueLock<T>(operation: () => Promise<T>): Promise<T> {
@@ -168,12 +169,12 @@ function withQueueLock<T>(operation: () => Promise<T>): Promise<T> {
 }
 
 export async function resetPromptState(): Promise<void> {
-  promptWindow = null;
+  promptSurface = null;
   for (const [id] of pendingApprovals) {
     settleApproval(id, false);
   }
   await withQueueLock(() => writePromptQueue([]));
-  unlockWindow = null;
+  unlockSurface = null;
   settleUnlock(false);
   await clearUnlockRequest();
 }
@@ -188,27 +189,63 @@ function settleApproval(id: string, allowed: boolean): void {
   pending.settle(allowed);
 }
 
-async function createExtensionWindow(
+// Firefox for Android ships no windows API at all; the property is absent
+// rather than throwing, so one detection point decides how every surface in
+// this file is opened, closed, and observed.
+function windowsApi(): typeof browser.windows | undefined {
+  return (browser as { windows?: typeof browser.windows }).windows;
+}
+
+async function createExtensionSurface(
   path: PublicPath,
   width: number,
   height: number,
-): Promise<number | null> {
-  const created = await browser.windows.create({
-    url: browser.runtime.getURL(path),
+): Promise<SurfaceHandle | null> {
+  const url = browser.runtime.getURL(path);
+  const windows = windowsApi();
+  if (windows === undefined) {
+    const tab = await browser.tabs.create({ url });
+    return tab.id === undefined ? null : { kind: 'tab', id: tab.id };
+  }
+  const created = await windows.create({
+    url,
     type: 'popup',
     width,
     height,
   });
-  return created?.id ?? null;
+  return created?.id === undefined ? null : { kind: 'window', id: created.id };
 }
 
-function ensurePromptWindow(): Promise<number | null> {
-  promptWindow ??= createExtensionWindow(
+async function closeSurface(
+  surface: SurfaceHandle,
+  description: string,
+): Promise<void> {
+  try {
+    if (surface.kind === 'tab') {
+      await browser.tabs.remove(surface.id);
+      return;
+    }
+    const windows = windowsApi();
+    if (windows === undefined) {
+      return;
+    }
+    await windows.remove(surface.id);
+  } catch (error) {
+    console.warn(`autograph: ${description} already gone`, error);
+  }
+}
+
+function isSameSurface(surface: SurfaceHandle, other: SurfaceHandle): boolean {
+  return surface.kind === other.kind && surface.id === other.id;
+}
+
+function ensurePromptSurface(): Promise<SurfaceHandle | null> {
+  promptSurface ??= createExtensionSurface(
     '/prompt.html',
     PROMPT_WINDOW_WIDTH,
     PROMPT_WINDOW_HEIGHT,
   );
-  return promptWindow;
+  return promptSurface;
 }
 
 export async function promptForCapability(
@@ -228,10 +265,10 @@ export async function promptForCapability(
   });
   approvalsByDedupKey.set(dedupKey, promise);
 
-  const windowId = await ensurePromptWindow();
+  const surface = await ensurePromptSurface();
   await withQueueLock(async () => {
     const queue = await readPromptQueue();
-    const entry: QueuedPrompt = { id, host, capability, windowId };
+    const entry: QueuedPrompt = { id, host, capability, surface };
     if (detail !== undefined) {
       entry.detail = detail;
     }
@@ -273,39 +310,35 @@ export async function answerPrompt(
     }
   }
   settleApproval(id, condition !== 'no');
-  await closePromptWindowIfIdle();
+  await closePromptSurfaceIfIdle();
 }
 
-async function closePromptWindowIfIdle(): Promise<void> {
-  if (promptWindow === null) {
+async function closePromptSurfaceIfIdle(): Promise<void> {
+  if (promptSurface === null) {
     return;
   }
   const queue = await readPromptQueue();
   if (queue.length > 0) {
     return;
   }
-  const windowId = await promptWindow;
-  promptWindow = null;
-  if (windowId !== null) {
-    try {
-      await browser.windows.remove(windowId);
-    } catch (error) {
-      console.warn('autograph: prompt window already gone', error);
-    }
+  const surface = await promptSurface;
+  promptSurface = null;
+  if (surface !== null) {
+    await closeSurface(surface, 'prompt surface');
   }
 }
 
-export async function handlePromptWindowClosed(
-  closedWindowId: number,
+export async function handlePromptSurfaceClosed(
+  closed: SurfaceHandle,
 ): Promise<void> {
-  if (promptWindow === null) {
+  if (promptSurface === null) {
     return;
   }
-  const windowId = await promptWindow;
-  if (windowId !== closedWindowId) {
+  const surface = await promptSurface;
+  if (surface === null || !isSameSurface(surface, closed)) {
     return;
   }
-  promptWindow = null;
+  promptSurface = null;
   const queue = await withQueueLock(async () => {
     const entries = await readPromptQueue();
     await writePromptQueue([]);
@@ -316,15 +349,15 @@ export async function handlePromptWindowClosed(
   }
 }
 
-// Unlock-on-demand: a locked vault opens the unlock page in its own window
-// and every waiting request shares one outcome, mirroring the prompt window.
+// Unlock-on-demand: a locked vault opens the unlock page on its own surface
+// and every waiting request shares one outcome, mirroring the prompt surface.
 interface PendingUnlock {
   promise: Promise<boolean>;
   settle: (unlocked: boolean) => void;
 }
 
 let pendingUnlock: PendingUnlock | null = null;
-let unlockWindow: Promise<number | null> | null = null;
+let unlockSurface: Promise<SurfaceHandle | null> | null = null;
 
 function settleUnlock(unlocked: boolean): void {
   if (pendingUnlock === null) {
@@ -342,13 +375,13 @@ async function requestUnlock(): Promise<boolean> {
       settle = resolve;
     });
     pendingUnlock = { promise, settle };
-    unlockWindow = createExtensionWindow(
+    unlockSurface = createExtensionSurface(
       '/unlock.html',
       UNLOCK_WINDOW_WIDTH,
       UNLOCK_WINDOW_HEIGHT,
     );
-    const windowId = await unlockWindow;
-    await writeUnlockRequest({ windowId });
+    const surface = await unlockSurface;
+    await writeUnlockRequest({ surface });
   }
   return pendingUnlock.promise;
 }
@@ -356,31 +389,27 @@ async function requestUnlock(): Promise<boolean> {
 async function finishUnlock(): Promise<void> {
   settleUnlock(true);
   await clearUnlockRequest();
-  if (unlockWindow === null) {
+  if (unlockSurface === null) {
     return;
   }
-  const windowId = await unlockWindow;
-  unlockWindow = null;
-  if (windowId !== null) {
-    try {
-      await browser.windows.remove(windowId);
-    } catch (error) {
-      console.warn('autograph: unlock window already gone', error);
-    }
+  const surface = await unlockSurface;
+  unlockSurface = null;
+  if (surface !== null) {
+    await closeSurface(surface, 'unlock surface');
   }
 }
 
-export async function handleUnlockWindowClosed(
-  closedWindowId: number,
+export async function handleUnlockSurfaceClosed(
+  closed: SurfaceHandle,
 ): Promise<void> {
-  if (unlockWindow === null) {
+  if (unlockSurface === null) {
     return;
   }
-  const windowId = await unlockWindow;
-  if (windowId !== closedWindowId) {
+  const surface = await unlockSurface;
+  if (surface === null || !isSameSurface(surface, closed)) {
     return;
   }
-  unlockWindow = null;
+  unlockSurface = null;
   settleUnlock(false);
   await clearUnlockRequest();
 }
@@ -488,9 +517,19 @@ export default defineBackground(() => {
   browser.runtime.onInstalled.addListener(() => {
     void resetPromptState();
   });
-  browser.windows.onRemoved.addListener((windowId) => {
-    void handlePromptWindowClosed(windowId);
-    void handleUnlockWindowClosed(windowId);
+  const windows = windowsApi();
+  if (windows !== undefined) {
+    windows.onRemoved.addListener((windowId) => {
+      void handlePromptSurfaceClosed({ kind: 'window', id: windowId });
+      void handleUnlockSurfaceClosed({ kind: 'window', id: windowId });
+    });
+  }
+  // tabs.onRemoved fires for every tab in the browser; the handlers ignore
+  // anything that is not the tracked surface, so dismissal keeps denying
+  // everything on Android exactly as closing the popup window does.
+  browser.tabs.onRemoved.addListener((tabId) => {
+    void handlePromptSurfaceClosed({ kind: 'tab', id: tabId });
+    void handleUnlockSurfaceClosed({ kind: 'tab', id: tabId });
   });
   const extensionOrigin = browser.runtime.getURL('');
   // sendResponse + `return true` is the one response mechanism native to

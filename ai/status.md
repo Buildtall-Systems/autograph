@@ -1,5 +1,35 @@
 # autograph — work log
 
+## 2026-07-29
+
+- Firefox for Android Phase 1 (surface abstraction) on
+  `feature/firefox-android`, worktree `projects/autograph-android`. The
+  prompt and unlock pages now open through a kind-tagged surface handle:
+  `SurfaceHandle` in `lib/prompts.ts` replaces the `windowId` fields on
+  `QueuedPrompt` and `UnlockRequest`. `windowsApi()` in the background is
+  the single feature-detection point, widening the always-typed namespace
+  so the check survives `strictTypeChecked`. Where `browser.windows`
+  exists the surfaces stay popup windows at the existing dimensions;
+  where it is absent they open as tabs. Teardown dispatches on the
+  handle's kind, `windows.onRemoved` registers only when the namespace is
+  present, and `tabs.onRemoved` registers unconditionally, so dismissal
+  keeps denying every pending request on Android. `openOptionsPage` in
+  the popup falls back to `tabs.create` when the API is absent or
+  rejects.
+- Windowed test suites moved from `windowId` assertions to surface
+  handles without loosening. New Android-mode suite masks the `windows`
+  namespace on `fakeBrowser` and covers tab opening, dedup onto one tab,
+  dismissal denying everything, an unrelated tab closing being ignored,
+  removal on queue drain, no premature removal, and the unlock round
+  trip.
+- fake-browser limitation recorded: its `tabs.remove` resolves through
+  the window store, which stays empty unless something called
+  `windows.create`, so tab removal throws there in windowed and masked
+  modes alike. The real API takes a scalar tab id and fires `onRemoved`;
+  the Android suite stubs that behavior narrowly.
+- Verification: `make lint`, `make test` (165 tests, 16 files), and
+  `make build` all pass. Desktop behavior unchanged.
+
 ## 2026-07-28
 
 - operations#53 Phase 4 CWS submission: operator registered the Chrome

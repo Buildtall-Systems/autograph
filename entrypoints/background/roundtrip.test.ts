@@ -12,7 +12,7 @@ import { relayToBackground } from '@/entrypoints/autograph.content';
 import {
   handleBackgroundRequest,
   handleUiMessage,
-  handleUnlockWindowClosed,
+  handleUnlockSurfaceClosed,
   resetPromptState,
 } from './index';
 import {
@@ -141,10 +141,10 @@ describe('NIP-07 round trip', () => {
       .poll(async () => (await readUnlockRequest()) !== null)
       .toBe(true);
     const unlockRequest = await readUnlockRequest();
-    if (unlockRequest === null || unlockRequest.windowId === null) {
-      throw new Error('unlock request has no window');
+    if (unlockRequest === null || unlockRequest.surface === null) {
+      throw new Error('unlock request has no surface');
     }
-    await handleUnlockWindowClosed(unlockRequest.windowId);
+    await handleUnlockSurfaceClosed(unlockRequest.surface);
     await expect(pending).rejects.toThrow('autograph: vault is locked');
   });
 });

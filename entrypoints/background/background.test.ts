@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { verifyEvent } from 'nostr-tools/pure';
 import { generateProfileKey, withSecretKey } from '@/lib/nostr';
@@ -14,7 +14,7 @@ import { encryptSecret, initializeVault, lockVault } from '@/lib/vault';
 import background, {
   answerPrompt,
   handleBackgroundRequest,
-  handleUnlockWindowClosed,
+  handleUnlockSurfaceClosed,
   resetPromptState,
 } from './index';
 
@@ -152,10 +152,11 @@ describe('handleBackgroundRequest', () => {
       .poll(async () => (await readUnlockRequest()) !== null)
       .toBe(true);
     const unlockRequest = await readUnlockRequest();
-    if (unlockRequest === null || unlockRequest.windowId === null) {
-      throw new Error('unlock request has no window');
+    if (unlockRequest === null || unlockRequest.surface === null) {
+      throw new Error('unlock request has no surface');
     }
-    await handleUnlockWindowClosed(unlockRequest.windowId);
+    expect(unlockRequest.surface.kind).toBe('window');
+    await handleUnlockSurfaceClosed(unlockRequest.surface);
     const result = await pending;
     expect(result.error).toBe('vault is locked');
     expect(await readUnlockRequest()).toBeNull();
@@ -268,7 +269,7 @@ describe('handleBackgroundRequest', () => {
     expect(await listQueuedPrompts()).toHaveLength(0);
   });
 
-  it('queues distinct capabilities in one prompt window', async () => {
+  it('queues distinct capabilities in one prompt surface', async () => {
     await seedProfile();
     const sign = handleBackgroundRequest(signEventRequest());
     const relays = handleBackgroundRequest({
@@ -278,7 +279,9 @@ describe('handleBackgroundRequest', () => {
     });
     await expect.poll(async () => (await listQueuedPrompts()).length).toBe(2);
     const queue = await listQueuedPrompts();
-    expect(new Set(queue.map((entry) => entry.windowId)).size).toBe(1);
+    expect(
+      new Set(queue.map((entry) => JSON.stringify(entry.surface))).size,
+    ).toBe(1);
     for (const entry of queue) {
       await answerPrompt(entry.id, 'single');
     }
@@ -296,12 +299,165 @@ describe('handleBackgroundRequest', () => {
     });
     await expect.poll(async () => (await listQueuedPrompts()).length).toBe(2);
     const prompt = await onlyQueuedPrompt();
-    if (prompt.windowId === null) {
-      throw new Error('prompt has no window');
+    if (prompt.surface === null) {
+      throw new Error('prompt has no surface');
     }
-    await fakeBrowser.windows.onRemoved.trigger(prompt.windowId);
+    expect(prompt.surface.kind).toBe('window');
+    await fakeBrowser.windows.onRemoved.trigger(prompt.surface.id);
     expect((await first).error).toBe('insufficient permissions for signEvent');
     expect((await second).error).toBe('insufficient permissions for getRelays');
     expect(await listQueuedPrompts()).toHaveLength(0);
+  });
+});
+
+// Firefox for Android exposes no windows API. Masking the namespace on the
+// fake proves the background reaches for tabs instead, with the same
+// dedup, dismissal, and teardown semantics the windowed suite asserts.
+describe('background without the windows API', () => {
+  const realWindows = fakeBrowser.windows;
+  let removedTabs: number[];
+
+  beforeEach(async () => {
+    fakeBrowser.reset();
+    delete (fakeBrowser as { windows?: unknown }).windows;
+    removedTabs = [];
+    // fake-browser resolves tabs.remove through its window store, which is
+    // empty when nothing ever called windows.create, so removal throws there
+    // in either mode. The real API drops the tab and fires onRemoved; this
+    // stub is that behavior and nothing more.
+    vi.spyOn(fakeBrowser.tabs, 'remove').mockImplementation(async (tabIds) => {
+      const ids = typeof tabIds === 'number' ? [tabIds] : tabIds;
+      removedTabs.push(...ids);
+      for (const id of ids) {
+        await fakeBrowser.tabs.onRemoved.trigger(id, {
+          windowId: 0,
+          isWindowClosing: false,
+        });
+      }
+    });
+    await resetPromptState();
+    background.main();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    (fakeBrowser as { windows?: unknown }).windows = realWindows;
+  });
+
+  it('opens the prompt as a tab', async () => {
+    await seedProfile();
+    const pending = handleBackgroundRequest(signEventRequest());
+    const prompt = await onlyQueuedPrompt();
+    expect(prompt.surface?.kind).toBe('tab');
+    await answerPrompt(prompt.id, 'single');
+    expect((await pending).error).toBeUndefined();
+  });
+
+  it('queues distinct capabilities onto one tab', async () => {
+    await seedProfile();
+    const sign = handleBackgroundRequest(signEventRequest());
+    const relays = handleBackgroundRequest({
+      type: 'getRelays',
+      params: {},
+      host: HOST,
+    });
+    await expect.poll(async () => (await listQueuedPrompts()).length).toBe(2);
+    const queue = await listQueuedPrompts();
+    expect(
+      new Set(queue.map((entry) => JSON.stringify(entry.surface))).size,
+    ).toBe(1);
+    for (const entry of queue) {
+      await answerPrompt(entry.id, 'single');
+    }
+    expect((await sign).error).toBeUndefined();
+    expect((await relays).error).toBeUndefined();
+  });
+
+  it('rejects every pending prompt when the tab closes', async () => {
+    await seedProfile();
+    const first = handleBackgroundRequest(signEventRequest());
+    const second = handleBackgroundRequest({
+      type: 'getRelays',
+      params: {},
+      host: HOST,
+    });
+    await expect.poll(async () => (await listQueuedPrompts()).length).toBe(2);
+    const prompt = await onlyQueuedPrompt();
+    if (prompt.surface === null) {
+      throw new Error('prompt has no surface');
+    }
+    await fakeBrowser.tabs.onRemoved.trigger(prompt.surface.id, {
+      windowId: 0,
+      isWindowClosing: false,
+    });
+    expect((await first).error).toBe('insufficient permissions for signEvent');
+    expect((await second).error).toBe('insufficient permissions for getRelays');
+    expect(await listQueuedPrompts()).toHaveLength(0);
+  });
+
+  it('ignores an unrelated tab closing', async () => {
+    await seedProfile();
+    const pending = handleBackgroundRequest(signEventRequest());
+    const prompt = await onlyQueuedPrompt();
+    if (prompt.surface === null) {
+      throw new Error('prompt has no surface');
+    }
+    await fakeBrowser.tabs.onRemoved.trigger(prompt.surface.id + 1000, {
+      windowId: 0,
+      isWindowClosing: false,
+    });
+    expect(await listQueuedPrompts()).toHaveLength(1);
+    await answerPrompt(prompt.id, 'single');
+    expect((await pending).error).toBeUndefined();
+  });
+
+  it('removes the tab once the queue drains', async () => {
+    await seedProfile();
+    const pending = handleBackgroundRequest(signEventRequest());
+    const prompt = await onlyQueuedPrompt();
+    await answerPrompt(prompt.id, 'single');
+    expect((await pending).error).toBeUndefined();
+    expect(removedTabs).toEqual([prompt.surface?.id]);
+  });
+
+  it('leaves the tab open while prompts remain queued', async () => {
+    await seedProfile();
+    const sign = handleBackgroundRequest(signEventRequest());
+    const relays = handleBackgroundRequest({
+      type: 'getRelays',
+      params: {},
+      host: HOST,
+    });
+    await expect.poll(async () => (await listQueuedPrompts()).length).toBe(2);
+    const queue = await listQueuedPrompts();
+    const [first] = queue;
+    if (first === undefined) {
+      throw new Error('prompt queue is empty');
+    }
+    await answerPrompt(first.id, 'single');
+    expect(removedTabs).toEqual([]);
+    for (const entry of queue.slice(1)) {
+      await answerPrompt(entry.id, 'single');
+    }
+    expect(removedTabs).toEqual([first.surface?.id]);
+    expect((await sign).error).toBeUndefined();
+    expect((await relays).error).toBeUndefined();
+  });
+
+  it('opens unlock as a tab and denies when it closes', async () => {
+    await seedGrantedProfile();
+    await lockVault();
+    const pending = handleBackgroundRequest(signEventRequest());
+    await expect
+      .poll(async () => (await readUnlockRequest()) !== null)
+      .toBe(true);
+    const unlockRequest = await readUnlockRequest();
+    if (unlockRequest === null || unlockRequest.surface === null) {
+      throw new Error('unlock request has no surface');
+    }
+    expect(unlockRequest.surface.kind).toBe('tab');
+    await handleUnlockSurfaceClosed(unlockRequest.surface);
+    expect((await pending).error).toBe('vault is locked');
+    expect(await readUnlockRequest()).toBeNull();
   });
 });

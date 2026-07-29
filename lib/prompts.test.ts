@@ -16,7 +16,7 @@ const PROMPT: QueuedPrompt = {
   id: 'abc123',
   host: 'drss.io',
   capability: 'signEvent',
-  windowId: 7,
+  surface: { kind: 'window', id: 7 },
   detail: { kind: 1, contentPreview: 'hello' },
 };
 
@@ -43,8 +43,10 @@ describe('prompt queue storage', () => {
 
   it('round-trips the unlock request through storage', async () => {
     expect(await readUnlockRequest()).toBeNull();
-    await writeUnlockRequest({ windowId: 42 });
-    expect(await readUnlockRequest()).toEqual({ windowId: 42 });
+    await writeUnlockRequest({ surface: { kind: 'tab', id: 42 } });
+    expect(await readUnlockRequest()).toEqual({
+      surface: { kind: 'tab', id: 42 },
+    });
     await clearUnlockRequest();
     expect(await readUnlockRequest()).toBeNull();
   });

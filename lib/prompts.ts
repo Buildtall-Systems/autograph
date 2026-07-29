@@ -9,16 +9,26 @@ export interface SignEventDetail {
   contentPreview: string;
 }
 
+// Prompt and unlock pages open as popup windows where the windows API exists
+// and as tabs where it does not (Firefox for Android). The kind travels with
+// the id so teardown reaches for the same API that opened the surface.
+export type SurfaceKind = 'window' | 'tab';
+
+export interface SurfaceHandle {
+  kind: SurfaceKind;
+  id: number;
+}
+
 export interface QueuedPrompt {
   id: string;
   host: string;
   capability: Capability;
-  windowId: number | null;
+  surface: SurfaceHandle | null;
   detail?: SignEventDetail;
 }
 
 export interface UnlockRequest {
-  windowId: number | null;
+  surface: SurfaceHandle | null;
 }
 
 export function contentPreview(content: string): string {
