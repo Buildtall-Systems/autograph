@@ -1,5 +1,39 @@
 # autograph — work log
 
+## 2026-07-30
+
+- Declared Firefox built-in data consent. `wxt.config.ts` adds
+  `data_collection_permissions: { required: ['none'] }` to the `gecko` block,
+  which is accurate: autograph collects nothing and makes no network
+  requests. The key is not repeated under `gecko_android`, which accepts only
+  `strict_min_version` and `strict_max_version`, and does not need to be,
+  because the declaration covers the add-on. Verified in the built artifacts:
+  the firefox-mv2 manifest carries it, and the chrome-mv3 manifest still has
+  no `browser_specific_settings`.
+- Version floors raised to the first release that supports the key on each
+  platform, `140.0` for desktop and `142.0` for Android, by operator
+  decision. Holding the old `128.0` floor produced
+  `KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION` and
+  `KEY_FIREFOX_ANDROID_UNSUPPORTED_BY_MIN_VERSION`, warnings rather than
+  errors, meaning older Firefox ignores the key instead of rejecting the
+  manifest. Raising the floors clears them. `web-ext lint` now reports zero
+  errors, zero notices, and zero warnings, where it previously reported one
+  warning for the missing declaration.
+- The two floors differ, so `GECKO_STRICT_MIN_VERSION` no longer serves both.
+  `lib/dist.ts` gains `GECKO_ANDROID_STRICT_MIN_VERSION`, and the two tests
+  that encoded a shared floor now assert each block against its own constant
+  and that the Android floor sits above desktop's. Verified in the built
+  manifest, not only in the config.
+- `docs/store-listing.md` records both floors with the reason, and states why
+  `required: ["none"]` is accurate, so an AMO reviewer does not have to infer
+  it: keys are generated or imported locally, signing happens inside the
+  extension, and the only data leaving it goes to the requesting page in the
+  same browser.
+- The floors do not invalidate the Phase 4 on-device pass. The AVD and the
+  physical phone both ran Firefox 153, above both floors.
+- Verification: `make lint`, `make test`, `make build`, and
+  `make lint-android` all pass.
+
 ## 2026-07-29
 
 - Firefox for Android Phase 4 (on-device verification and documentation).

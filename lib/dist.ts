@@ -2,7 +2,13 @@
 // URLs, and channel semantics shared by wxt.config.ts and tests.
 
 export const ADDON_ID = 'autograph@buildtall.systems';
-export const GECKO_STRICT_MIN_VERSION = '128.0';
+
+// The floors are the first version on each platform that supports
+// data_collection_permissions, which autograph declares. Desktop gained the key
+// in 140 and Android in 142, so the two floors differ and cannot share one
+// constant.
+export const GECKO_STRICT_MIN_VERSION = '140.0';
+export const GECKO_ANDROID_STRICT_MIN_VERSION = '142.0';
 export const HOMEPAGE_URL = 'https://buildtall.systems';
 export const DIST_BASE_URL = `${HOMEPAGE_URL}/autograph`;
 export const UPDATES_URL = `${DIST_BASE_URL}/updates.json`;

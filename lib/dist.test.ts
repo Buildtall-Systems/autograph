@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import config from '@/wxt.config';
 import {
   DIST_BASE_URL,
+  GECKO_ANDROID_STRICT_MIN_VERSION,
   GECKO_STRICT_MIN_VERSION,
   parseChannel,
   UNLISTED_VERSION_SEGMENT,
@@ -63,16 +64,19 @@ describe('distribution URLs', () => {
 });
 
 describe('android compatibility declaration', () => {
-  it('declares gecko_android for firefox at the shared floor', () => {
+  it('declares gecko_android for firefox at its own floor', () => {
     expect(
       manifestFor('firefox').browser_specific_settings?.gecko_android,
-    ).toEqual({ strict_min_version: GECKO_STRICT_MIN_VERSION });
+    ).toEqual({ strict_min_version: GECKO_ANDROID_STRICT_MIN_VERSION });
   });
 
-  it('holds one version floor for desktop and android', () => {
+  // Android gained data_collection_permissions two releases after desktop, so
+  // its floor must sit above desktop's rather than track it.
+  it('floors android above desktop', () => {
     const settings = manifestFor('firefox').browser_specific_settings;
-    expect(settings?.gecko_android?.strict_min_version).toBe(
-      settings?.gecko?.strict_min_version,
+    expect(settings?.gecko?.strict_min_version).toBe(GECKO_STRICT_MIN_VERSION);
+    expect(Number.parseFloat(GECKO_ANDROID_STRICT_MIN_VERSION)).toBeGreaterThan(
+      Number.parseFloat(GECKO_STRICT_MIN_VERSION),
     );
   });
 

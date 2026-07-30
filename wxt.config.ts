@@ -4,6 +4,7 @@ import { defineConfig } from 'wxt';
 import {
   ADDON_ID,
   CHANNEL_ENV_VAR,
+  GECKO_ANDROID_STRICT_MIN_VERSION,
   GECKO_STRICT_MIN_VERSION,
   HOMEPAGE_URL,
   parseChannel,
@@ -47,12 +48,17 @@ export default defineConfig({
               gecko: {
                 id: ADDON_ID,
                 strict_min_version: GECKO_STRICT_MIN_VERSION,
+                // autograph collects and transmits nothing, so Firefox's
+                // built-in data consent takes the single 'none' value. The key
+                // covers the add-on, so gecko_android does not repeat it and
+                // could not: it accepts only the version keys.
+                data_collection_permissions: { required: ['none'] },
                 ...(channel === 'unlisted' ? { update_url: UPDATES_URL } : {}),
               },
               // Presence of this key is what makes AMO list the extension for
-              // Firefox for Android. The floor is the one shared constant.
+              // Firefox for Android. Its floor is higher than desktop's.
               gecko_android: {
-                strict_min_version: GECKO_STRICT_MIN_VERSION,
+                strict_min_version: GECKO_ANDROID_STRICT_MIN_VERSION,
               },
             },
           }

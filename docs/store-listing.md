@@ -77,8 +77,14 @@ AMO "About this extension" and CWS "Description":
 - The listed build carries no `update_url`. Self-distribution continues on
   the unlisted channel under the same add-on id with a four-segment version
   (listed 0.2.1, unlisted 0.2.1.1).
-- Android support: the manifest declares `gecko_android` with the same
-  `128.0` floor as desktop. Firefox for Android provides no `windows` API,
+- Version floors: `140.0` for desktop and `142.0` for Android, which are the
+  first releases on each platform that support
+  `data_collection_permissions`. The extension declares
+  `required: ["none"]`, because it collects and transmits nothing: keys are
+  generated or imported locally, signing happens inside the extension, and
+  the only data leaving it goes to the requesting page in the same browser.
+- Android support: the manifest declares `gecko_android`, which is what makes
+  AMO list for Android. Firefox for Android provides no `windows` API,
   so the approval prompt and the unlock page are opened with `tabs.create`
   there and with `windows.create` on desktop. The choice is made by feature
   detection at runtime, not by build target, and both paths carry identical
