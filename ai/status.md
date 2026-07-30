@@ -2,6 +2,64 @@
 
 ## 2026-07-29
 
+- Firefox for Android Phase 4 (on-device verification and documentation).
+  Functional pass on the `buildtall` AVD with Firefox 153.0.1 x86_64
+  sideloaded and remote debugging enabled: install via `make dev-android`,
+  options as a tab, unlock as a tab with passphrase entry, profile creation
+  with the key encrypted at rest, `window.nostr` carrying all five methods,
+  prompt as a tab rendering origin, capability, event kind, and a content
+  preview, approve returning a value and closing the tab, an active grant
+  suppressing the re-prompt, deny rejecting with a clear error, dismissal of
+  the prompt tab rejecting both queued requests through `tabs.onRemoved`,
+  revoke clearing the permission, clipboard copy resolving, both btk themes
+  rendering, and a real NIP-07 sign-in end to end through
+  cascade.engineer's own button. Fifteen checks, all passing.
+- The emulator misreports pointer capability, so it cannot verify the Phase
+  3 touch pass at all. Firefox on the `buildtall` AVD reports
+  `pointer: fine` with `any-pointer: coarse` false and renders the base 32px
+  button, despite the AVD exposing genuine `virtio_input_multi_touch`
+  devices. A physical Android 17 phone on Firefox 153 reports
+  `pointer: coarse` true, `pointer: fine` false, `any-pointer: coarse` true,
+  `hover: none` true, dpr 2.609, and renders the 44px coarse button. Phase 3
+  needs no rework. The emulator answers functional questions only; any
+  sizing judgement needs hardware.
+- `hover: none` is true on hardware as well, so a combined
+  `(pointer: coarse), (hover: none)` condition would also work and would
+  avoid enlarging a touchscreen laptop. Raised, not actioned, no
+  demonstrated need.
+- Consequence for the store listing: Android screenshots are unresolved.
+  `adb exec-out screencap -p` works against the AVD and yields 1280x2856,
+  but shots taken there would show desktop-sized controls.
+  `docs/store-listing.md` names the three Android scenes, records them as
+  not yet captured, and states that capture must happen on a physical
+  device.
+- Deviation from the plan, which scoped Phase 4 to documentation only:
+  `dev-android` was broken and is fixed here. The target passed no device
+  flag when `ANDROID_DEVICE` was empty, on the assumption that web-ext
+  selects the sole attached device. It does not; it enumerates and refuses.
+  The target now resolves the sole attached device itself, prints which one
+  it chose, and fails with a clear message when none is attached. The flag
+  is `--android-device`, the name web-ext's own error advertises, not
+  `--adb-device`. The README written this phase documents the bare
+  invocation, so leaving the target broken would have shipped a false
+  instruction.
+- `README.md` gains Firefox for Android in the supported browsers line, an
+  install section stating that AMO does not yet offer it and giving the
+  `make dev-android` path with its temporary-install semantics, and a stack
+  paragraph recording the window or tab behaviour and the `pointer-coarse`
+  choice.
+- Pre-existing finding, reproduced from this branch but not caused by it:
+  denying a higher capability replaces an existing lower grant with
+  `{condition:"no", level:10}`, and later requests are then refused with no
+  prompt. Approve `getPublicKey` for five minutes, deny `signEvent`, and
+  `getPublicKey` fails with "denied getPublicKey". `lib/permissions.ts` and
+  `lib/profiles.ts` are untouched by this branch, so it reproduces on
+  develop and on desktop. The options Permissions row does show "denied,
+  expires never", so the state is discoverable, just not signalled at deny
+  time. Unfiled.
+- Verification: `make lint`, `make test`, `make build`, and
+  `make lint-android` all pass.
+
 - Firefox for Android Phase 3 (mobile UI pass across popup, prompt,
   unlock, and options). The plan left the variant strategy to the
   implementer. Chose `pointer-coarse` over mobile-first sizing with a

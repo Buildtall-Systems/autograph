@@ -1,6 +1,7 @@
 # autograph
 
-A browser extension for sovereign identity on the web. Firefox and Chromium.
+A browser extension for sovereign identity on the web. Firefox, Firefox for
+Android, and Chromium.
 
 The first delivered feature is a NIP-07 signer: web applications request
 signatures via `window.nostr`, and autograph signs on the user's behalf with
@@ -24,6 +25,24 @@ carries an `update_url` pointing at
 `https://buildtall.systems/autograph/updates.json`, so Firefox checks for
 and applies new versions automatically (or on demand via
 `about:addons` → gear menu → Check for Updates).
+
+### Firefox for Android
+
+Not yet available from AMO. The manifest declares Android compatibility, so
+the listing will offer Android once a version carrying that declaration
+clears review; until then the only install path is a development one.
+
+For development installs, enable Remote debugging via USB in Firefox for
+Android under Settings → Advanced, connect the device or start an emulator,
+then:
+
+```
+make dev-android                   # sole attached device
+make dev-android ANDROID_DEVICE=<adb id>   # when several are attached
+```
+
+The extension is installed temporarily and is removed when the command
+exits, the same semantics as Load Temporary Add-on on desktop.
 
 ### Chromium (unpacked, developer mode)
 
@@ -146,6 +165,13 @@ Built extensions land in `.output/`. To load temporarily:
 The stack is WXT (one TypeScript codebase, Firefox MV2 + Chromium MV3
 builds), nostr-tools for all cryptography, and Tailwind CSS v4 with the
 btk buildtall theme tokens (`buildtall-dark` default, `buildtall-light`).
+
+The approval prompt and the unlock page open as popup windows where the
+`windows` API exists and as tabs where it does not, which is the case on
+Firefox for Android. Dismissing either surface denies every request it was
+holding, on both paths. Touch sizing is applied through Tailwind's
+`pointer-coarse` variant, so it follows the pointing device rather than the
+viewport and leaves desktop rendering untouched.
 
 ## Roadmap
 

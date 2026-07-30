@@ -2,9 +2,9 @@
 
 NIX := nix develop -c
 BUMP ?= patch
-# Empty selects the sole connected adb device, which is the usual case.
+# web-ext refuses to pick a device even when exactly one is attached, so
+# dev-android resolves the sole attached device when this is empty.
 ANDROID_DEVICE ?=
-ANDROID_DEVICE_FLAG = $(if $(ANDROID_DEVICE),--adb-device $(ANDROID_DEVICE))
 VERSION = $(shell $(NIX) node -p "require('./package.json').version")
 
 help: ## list targets
@@ -37,8 +37,17 @@ dev: ## dev mode, chromium
 dev-firefox: ## dev mode, firefox
 	$(NIX) npm run dev:firefox
 
-dev-android: build ## run the firefox build on Android over adb (ANDROID_DEVICE=<id>)
-	$(NIX) npx web-ext run --target=firefox-android --source-dir .output/firefox-mv2 $(ANDROID_DEVICE_FLAG)
+dev-android: build ## run the firefox build on Android over adb (ANDROID_DEVICE=<id>, else the sole attached device)
+	@device="$(ANDROID_DEVICE)"; \
+	if [ -z "$$device" ]; then \
+	  device=$$($(NIX) adb devices | grep -w device | head -1 | cut -f1); \
+	fi; \
+	if [ -z "$$device" ]; then \
+	  echo "dev-android: no adb device attached" >&2; \
+	  exit 1; \
+	fi; \
+	echo "dev-android: using $$device"; \
+	$(NIX) npx web-ext run --target=firefox-android --source-dir .output/firefox-mv2 --android-device "$$device"
 
 zip: ## package both targets
 	$(NIX) npm run zip

@@ -50,8 +50,11 @@ AMO "About this extension" and CWS "Description":
 >   and NIP-44 encryption
 > - multi-profile vault with keys encrypted at rest
 > - per-origin permission grants with expiry
-> - approval prompt for every new origin, popup for day-to-day status, and
+> - approval prompt for every new origin, opening as a window on desktop and
+>   as a tab on Firefox for Android, with a popup for day-to-day status and
 >   an options page for profile management
+> - desktop and mobile: Firefox, Firefox for Android, and Chromium, from one
+>   codebase with the same approval semantics on each
 >
 > autograph collects no data and makes no network requests. Everything
 > stays in your browser.
@@ -74,6 +77,13 @@ AMO "About this extension" and CWS "Description":
 - The listed build carries no `update_url`. Self-distribution continues on
   the unlisted channel under the same add-on id with a four-segment version
   (listed 0.2.1, unlisted 0.2.1.1).
+- Android support: the manifest declares `gecko_android` with the same
+  `128.0` floor as desktop. Firefox for Android provides no `windows` API,
+  so the approval prompt and the unlock page are opened with `tabs.create`
+  there and with `windows.create` on desktop. The choice is made by feature
+  detection at runtime, not by build target, and both paths carry identical
+  semantics: closing the surface denies every request it was holding,
+  observed through `tabs.onRemoved` and `windows.onRemoved` respectively.
 
 ## CWS Single Purpose
 
@@ -114,8 +124,21 @@ AMO "About this extension" and CWS "Description":
 - **CWS small promo tile**: 440x280 PNG at
   `assets/store/promo-440x280.png`, rendered from `assets/store-promo.svg`
   (`make tile`).
-- **Screenshots**: 1280x800, dark theme (`buildtall-dark`), stored in
-  `assets/store/`. Shot list:
+- **Screenshots (desktop)**: 1280x800, dark theme (`buildtall-dark`), stored
+  in `assets/store/`. Shot list:
   1. `screenshot-1-unlock.png`: popup in the locked state / unlock flow
   2. `screenshot-2-approval.png`: approval prompt over a real site
   3. `screenshot-3-options.png`: options page, profile management
+- **Screenshots (Android)**: portrait, dark theme (`buildtall-dark`), stored
+  alongside the desktop set in `assets/store/`. Not yet captured. The same
+  three scenes as the desktop set, so AMO can show the mobile surface for
+  each:
+  1. `screenshot-android-1-unlock.png`: unlock page as a tab
+  2. `screenshot-android-2-approval.png`: approval prompt as a tab
+  3. `screenshot-android-3-options.png`: options page, profile management
+
+  Capture on a physical device, not on an emulator. `adb exec-out screencap
+  -p` works against the `buildtall` AVD and yields 1280x2856, but Firefox on
+  that AVD reports `pointer: fine` and renders the base sizing rather than
+  the coarse treatment, so emulator shots would show desktop-sized controls
+  and misrepresent the mobile UI.
